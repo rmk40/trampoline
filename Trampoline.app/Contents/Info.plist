@@ -1,0 +1,1670 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+
+	<!-- ============================================================
+	     Section 1: App Identity
+	     ============================================================ -->
+
+	<key>CFBundleIdentifier</key>
+	<string>com.maelos.trampoline</string>
+
+	<key>CFBundleName</key>
+	<string>Trampoline</string>
+
+	<key>CFBundleDisplayName</key>
+	<string>Trampoline</string>
+
+	<key>CFBundleExecutable</key>
+	<string>Trampoline</string>
+
+	<key>CFBundleVersion</key>
+	<string>1.0</string>
+
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+
+	<key>LSMinimumSystemVersion</key>
+	<string>14.0</string>
+
+	<key>LSUIElement</key>
+	<true/>
+
+	<key>NSHighResolutionCapable</key>
+	<true/>
+
+	<!-- ============================================================
+	     Section 2: UTI Declarations
+	     ============================================================ -->
+
+	<!-- Exported Type Declarations (2 entries) -->
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<!-- 1. TypeScript Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.typescript-source</string>
+			<key>UTTypeDescription</key>
+			<string>TypeScript Source</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>ts</string>
+					<string>mts</string>
+					<string>cts</string>
+				</array>
+				<key>public.mime-type</key>
+				<string>text/typescript</string>
+			</dict>
+		</dict>
+		<!-- 2. R Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.r-source</string>
+			<key>UTTypeDescription</key>
+			<string>R Source</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>r</string>
+					<string>R</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
+
+	<!-- Imported Type Declarations (41 entries) -->
+	<key>UTImportedTypeDeclarations</key>
+	<array>
+		<!-- 1. TSX Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.tsx-source</string>
+			<key>UTTypeDescription</key>
+			<string>TypeScript JSX Source</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>tsx</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 2. JSX Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.jsx-source</string>
+			<key>UTTypeDescription</key>
+			<string>JavaScript JSX Source</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>jsx</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 3. Vue Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.vue-source</string>
+			<key>UTTypeDescription</key>
+			<string>Vue Component</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>vue</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 4. Svelte Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.svelte-source</string>
+			<key>UTTypeDescription</key>
+			<string>Svelte Component</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>svelte</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 5. Astro Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.astro-source</string>
+			<key>UTTypeDescription</key>
+			<string>Astro Component</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>astro</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 6. Rust Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.rust-source</string>
+			<key>UTTypeDescription</key>
+			<string>Rust Source</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>rs</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 7. Go Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.go-source</string>
+			<key>UTTypeDescription</key>
+			<string>Go Source</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>go</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 8. Zig Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.zig-source</string>
+			<key>UTTypeDescription</key>
+			<string>Zig Source</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>zig</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 9. Nim Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.nim-source</string>
+			<key>UTTypeDescription</key>
+			<string>Nim Source</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>nim</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 10. Kotlin Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.kotlin-source</string>
+			<key>UTTypeDescription</key>
+			<string>Kotlin Source</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>kt</string>
+					<string>kts</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 11. Scala Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.scala-source</string>
+			<key>UTTypeDescription</key>
+			<string>Scala Source</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>scala</string>
+					<string>sc</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 12. Groovy Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.groovy-source</string>
+			<key>UTTypeDescription</key>
+			<string>Groovy Source</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>groovy</string>
+					<string>gvy</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 13. C# Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.csharp-source</string>
+			<key>UTTypeDescription</key>
+			<string>C# Source</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>cs</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 14. F# Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.fsharp-source</string>
+			<key>UTTypeDescription</key>
+			<string>F# Source</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>fs</string>
+					<string>fsi</string>
+					<string>fsx</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 15. Dart Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.dart-source</string>
+			<key>UTTypeDescription</key>
+			<string>Dart Source</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>dart</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 16. Lua Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.lua-source</string>
+			<key>UTTypeDescription</key>
+			<string>Lua Source</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>lua</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 17. CoffeeScript Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.coffeescript-source</string>
+			<key>UTTypeDescription</key>
+			<string>CoffeeScript Source</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>coffee</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 18. Elixir Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.elixir-source</string>
+			<key>UTTypeDescription</key>
+			<string>Elixir Source</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>ex</string>
+					<string>exs</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 19. Elm Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.elm-source</string>
+			<key>UTTypeDescription</key>
+			<string>Elm Source</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>elm</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 20. Haskell Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.haskell-source</string>
+			<key>UTTypeDescription</key>
+			<string>Haskell Source</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>hs</string>
+					<string>lhs</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 21. OCaml Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.ocaml-source</string>
+			<key>UTTypeDescription</key>
+			<string>OCaml Source</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>ml</string>
+					<string>mli</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 22. Terraform Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.terraform-source</string>
+			<key>UTTypeDescription</key>
+			<string>Terraform Configuration</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>tf</string>
+					<string>tfvars</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 23. HCL Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.hcl-source</string>
+			<key>UTTypeDescription</key>
+			<string>HCL Configuration</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>hcl</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 24. TOML Source (conforms to public.plain-text only) -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.toml-source</string>
+			<key>UTTypeDescription</key>
+			<string>TOML Configuration</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>toml</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 25. Nix Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.nix-source</string>
+			<key>UTTypeDescription</key>
+			<string>Nix Expression</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>nix</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 26. Dhall Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.dhall-source</string>
+			<key>UTTypeDescription</key>
+			<string>Dhall Configuration</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>dhall</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 27. GraphQL Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.graphql-source</string>
+			<key>UTTypeDescription</key>
+			<string>GraphQL Schema</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>graphql</string>
+					<string>gql</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 28. Protocol Buffer Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.protobuf-source</string>
+			<key>UTTypeDescription</key>
+			<string>Protocol Buffer Definition</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>proto</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 29. Prisma Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.prisma-source</string>
+			<key>UTTypeDescription</key>
+			<string>Prisma Schema</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>prisma</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 30. Sass Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.sass-source</string>
+			<key>UTTypeDescription</key>
+			<string>Sass Stylesheet</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>sass</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 31. SCSS Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.scss-source</string>
+			<key>UTTypeDescription</key>
+			<string>SCSS Stylesheet</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>scss</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 32. Less Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.less-source</string>
+			<key>UTTypeDescription</key>
+			<string>Less Stylesheet</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>less</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 33. Stylus Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.stylus-source</string>
+			<key>UTTypeDescription</key>
+			<string>Stylus Stylesheet</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>styl</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 34. Jade/Pug Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.jade-source</string>
+			<key>UTTypeDescription</key>
+			<string>Jade/Pug Template</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>jade</string>
+					<string>pug</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 35. EJS Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.ejs-source</string>
+			<key>UTTypeDescription</key>
+			<string>EJS Template</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>ejs</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 36. Handlebars Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.handlebars-source</string>
+			<key>UTTypeDescription</key>
+			<string>Handlebars Template</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>hbs</string>
+					<string>handlebars</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 37. Mustache Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.mustache-source</string>
+			<key>UTTypeDescription</key>
+			<string>Mustache Template</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>mustache</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 38. Twig Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.twig-source</string>
+			<key>UTTypeDescription</key>
+			<string>Twig Template</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>twig</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 39. Jinja Source -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.jinja-source</string>
+			<key>UTTypeDescription</key>
+			<string>Jinja Template</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>jinja</string>
+					<string>jinja2</string>
+					<string>j2</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 40. MDX Source (conforms to public.plain-text only) -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.mdx-source</string>
+			<key>UTTypeDescription</key>
+			<string>MDX Document</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>mdx</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- 41. Jupyter Notebook (conforms to public.json, public.plain-text) -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.devfiletypes.jupyter-notebook</string>
+			<key>UTTypeDescription</key>
+			<string>Jupyter Notebook</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.json</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>ipynb</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
+
+	<!-- ============================================================
+	     Section 3: Document Types (85 extensions total)
+	     ============================================================ -->
+
+	<key>CFBundleDocumentTypes</key>
+	<array>
+
+		<!-- ========================================
+		     Custom UTI entries (LSHandlerRank = Default)
+		     43 entries covering 60 extensions
+		     ======================================== -->
+
+		<!-- 1. TypeScript Source (ts, mts, cts) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>TypeScript Source</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.typescript-source</string>
+			</array>
+		</dict>
+		<!-- 2. R Source (r, R) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>R Source</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.r-source</string>
+			</array>
+		</dict>
+		<!-- 3. TypeScript JSX (tsx) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>TypeScript JSX Source</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.tsx-source</string>
+			</array>
+		</dict>
+		<!-- 4. JavaScript JSX (jsx) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>JavaScript JSX Source</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.jsx-source</string>
+			</array>
+		</dict>
+		<!-- 5. Vue Component (vue) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Vue Component</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.vue-source</string>
+			</array>
+		</dict>
+		<!-- 6. Svelte Component (svelte) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Svelte Component</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.svelte-source</string>
+			</array>
+		</dict>
+		<!-- 7. Astro Component (astro) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Astro Component</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.astro-source</string>
+			</array>
+		</dict>
+		<!-- 8. Rust Source (rs) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Rust Source</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.rust-source</string>
+			</array>
+		</dict>
+		<!-- 9. Go Source (go) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Go Source</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.go-source</string>
+			</array>
+		</dict>
+		<!-- 10. Zig Source (zig) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Zig Source</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.zig-source</string>
+			</array>
+		</dict>
+		<!-- 11. Nim Source (nim) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Nim Source</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.nim-source</string>
+			</array>
+		</dict>
+		<!-- 12. Kotlin Source (kt, kts) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Kotlin Source</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.kotlin-source</string>
+			</array>
+		</dict>
+		<!-- 13. Scala Source (scala, sc) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Scala Source</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.scala-source</string>
+			</array>
+		</dict>
+		<!-- 14. Groovy Source (groovy, gvy) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Groovy Source</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.groovy-source</string>
+			</array>
+		</dict>
+		<!-- 15. C# Source (cs) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>C# Source</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.csharp-source</string>
+			</array>
+		</dict>
+		<!-- 16. F# Source (fs, fsi, fsx) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>F# Source</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.fsharp-source</string>
+			</array>
+		</dict>
+		<!-- 17. Dart Source (dart) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Dart Source</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.dart-source</string>
+			</array>
+		</dict>
+		<!-- 18. Lua Source (lua) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Lua Source</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.lua-source</string>
+			</array>
+		</dict>
+		<!-- 19. CoffeeScript Source (coffee) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>CoffeeScript Source</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.coffeescript-source</string>
+			</array>
+		</dict>
+		<!-- 20. Elixir Source (ex, exs) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Elixir Source</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.elixir-source</string>
+			</array>
+		</dict>
+		<!-- 21. Elm Source (elm) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Elm Source</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.elm-source</string>
+			</array>
+		</dict>
+		<!-- 22. Haskell Source (hs, lhs) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Haskell Source</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.haskell-source</string>
+			</array>
+		</dict>
+		<!-- 23. OCaml Source (ml, mli) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>OCaml Source</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.ocaml-source</string>
+			</array>
+		</dict>
+		<!-- 24. Terraform Configuration (tf, tfvars) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Terraform Configuration</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.terraform-source</string>
+			</array>
+		</dict>
+		<!-- 25. HCL Configuration (hcl) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>HCL Configuration</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.hcl-source</string>
+			</array>
+		</dict>
+		<!-- 26. TOML Configuration (toml) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>TOML Configuration</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.toml-source</string>
+			</array>
+		</dict>
+		<!-- 27. Nix Expression (nix) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Nix Expression</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.nix-source</string>
+			</array>
+		</dict>
+		<!-- 28. Dhall Configuration (dhall) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Dhall Configuration</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.dhall-source</string>
+			</array>
+		</dict>
+		<!-- 29. GraphQL Schema (graphql, gql) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>GraphQL Schema</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.graphql-source</string>
+			</array>
+		</dict>
+		<!-- 30. Protocol Buffer Definition (proto) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Protocol Buffer Definition</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.protobuf-source</string>
+			</array>
+		</dict>
+		<!-- 31. Prisma Schema (prisma) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Prisma Schema</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.prisma-source</string>
+			</array>
+		</dict>
+		<!-- 32. Sass Stylesheet (sass) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Sass Stylesheet</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.sass-source</string>
+			</array>
+		</dict>
+		<!-- 33. SCSS Stylesheet (scss) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>SCSS Stylesheet</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.scss-source</string>
+			</array>
+		</dict>
+		<!-- 34. Less Stylesheet (less) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Less Stylesheet</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.less-source</string>
+			</array>
+		</dict>
+		<!-- 35. Stylus Stylesheet (styl) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Stylus Stylesheet</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.stylus-source</string>
+			</array>
+		</dict>
+		<!-- 36. Jade/Pug Template (jade, pug) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Jade/Pug Template</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.jade-source</string>
+			</array>
+		</dict>
+		<!-- 37. EJS Template (ejs) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>EJS Template</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.ejs-source</string>
+			</array>
+		</dict>
+		<!-- 38. Handlebars Template (hbs, handlebars) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Handlebars Template</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.handlebars-source</string>
+			</array>
+		</dict>
+		<!-- 39. Mustache Template (mustache) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Mustache Template</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.mustache-source</string>
+			</array>
+		</dict>
+		<!-- 40. Twig Template (twig) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Twig Template</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.twig-source</string>
+			</array>
+		</dict>
+		<!-- 41. Jinja Template (jinja, jinja2, j2) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Jinja Template</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.jinja-source</string>
+			</array>
+		</dict>
+		<!-- 42. MDX Document (mdx) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>MDX Document</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.mdx-source</string>
+			</array>
+		</dict>
+		<!-- 43. Jupyter Notebook (ipynb) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Jupyter Notebook</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.devfiletypes.jupyter-notebook</string>
+			</array>
+		</dict>
+
+		<!-- ========================================
+		     System UTI entries (LSHandlerRank = Alternate)
+		     6 entries covering 7 extensions
+		     ======================================== -->
+
+		<!-- 44. JSON Document (json) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>JSON Document</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.json</string>
+			</array>
+		</dict>
+		<!-- 45. YAML Document (yaml, yml) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>YAML Document</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.yaml</string>
+			</array>
+		</dict>
+		<!-- 46. XML Document (xml) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>XML Document</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.xml</string>
+			</array>
+		</dict>
+		<!-- 47. Python Script (py) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Python Script</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.python-script</string>
+			</array>
+		</dict>
+		<!-- 48. Ruby Script (rb) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Ruby Script</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.ruby-script</string>
+			</array>
+		</dict>
+		<!-- 49. Shell Script (sh) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Shell Script</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.shell-script</string>
+			</array>
+		</dict>
+
+		<!-- ========================================
+		     Dynamic UTI / extension-based entries
+		     (LSHandlerRank = Alternate)
+		     8 entries covering 18 extensions
+		     ======================================== -->
+
+		<!-- 50. Shell Variants (bash, zsh) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Shell Script Variant</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>bash</string>
+				<string>zsh</string>
+			</array>
+		</dict>
+		<!-- 51. SQL (sql) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>SQL Script</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>sql</string>
+			</array>
+		</dict>
+		<!-- 52. Config Files (env, conf, properties) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Configuration File</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>env</string>
+				<string>conf</string>
+				<string>properties</string>
+			</array>
+		</dict>
+		<!-- 53. Data Files (tsv) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Tab-Separated Values</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>tsv</string>
+			</array>
+		</dict>
+		<!-- 54. Package Files (lock, gemspec) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Package File</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>lock</string>
+				<string>gemspec</string>
+			</array>
+		</dict>
+		<!-- 55. Git and Editor Config (gitignore, gitattributes, editorconfig) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Dotfile</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>gitignore</string>
+				<string>gitattributes</string>
+				<string>editorconfig</string>
+			</array>
+		</dict>
+		<!-- 56. Build and Container Files (dockerfile, makefile, cmake, gradle) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Build File</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>dockerfile</string>
+				<string>makefile</string>
+				<string>cmake</string>
+				<string>gradle</string>
+			</array>
+		</dict>
+		<!-- 57. Patch and Diff Files (patch, diff) -->
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Patch File</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>patch</string>
+				<string>diff</string>
+			</array>
+		</dict>
+	</array>
+
+</dict>
+</plist>

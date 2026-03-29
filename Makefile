@@ -18,8 +18,10 @@ clean:
 install: all
 	cp -R Trampoline.app /Applications/
 	$(LSREGISTER) -f /Applications/Trampoline.app
+	mkdir -p /usr/local/bin
 	ln -sf /Applications/Trampoline.app/Contents/MacOS/Trampoline /usr/local/bin/trampoline
 
 uninstall:
+	$(LSREGISTER) -u /Applications/Trampoline.app 2>/dev/null || true
 	rm -f /usr/local/bin/trampoline
 	rm -rf /Applications/Trampoline.app

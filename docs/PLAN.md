@@ -233,13 +233,13 @@ Phase 3: Polish (3 tasks, ~3 hours)
 
 **Status:**
 
-| Step                     | Status  | Notes |
-| ------------------------ | ------- | ----- |
-| Delegate to @code-writer | pending |       |
-| Build verification       | pending |       |
-| Binary smoke test        | pending |       |
-| Commit                   | pending | SHA:  |
-| Plan updated             | pending |       |
+| Step                     | Status | Notes   |
+| ------------------------ | ------ | ------- |
+| Delegate to @code-writer | done   |         |
+| Build verification       | done   |         |
+| Binary smoke test        | done   |         |
+| Commit                   | done   | 1b632aa |
+| Plan updated             | done   |         |
 
 ---
 
