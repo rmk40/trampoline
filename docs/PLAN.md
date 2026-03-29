@@ -26,10 +26,14 @@ The orchestrator **never writes implementation code directly**. Instead:
 2. **Delegate** implementation to `@code-writer` with detailed prompts that
    include all necessary context from this plan and the design docs
 3. **Verify** the output (build, smoke test, LOOK checkpoints)
-4. **Delegate review** to `@code-review`
+4. **Delegate review** to `@code-review` — **EVERY task gets a review before
+   commit, no exceptions**. Even "simple" tasks like TR-01 and TR-02 need
+   review (the TR-02 review caught a blocker in the uninstall target).
 5. **Fix** issues by delegating back to `@code-writer` with specific findings
-6. **Commit** only after all validation gates pass
-7. **Update this plan** immediately after each step completes
+6. **Re-review** if fixes were substantial (>3 files changed or logic altered)
+7. **Commit** only after all validation gates pass AND review returns zero
+   blockers
+8. **Update this plan** immediately after each step completes
 
 ### Context Window Strategy
 
@@ -233,13 +237,14 @@ Phase 3: Polish (3 tasks, ~3 hours)
 
 **Status:**
 
-| Step                     | Status | Notes   |
-| ------------------------ | ------ | ------- |
-| Delegate to @code-writer | done   |         |
-| Build verification       | done   |         |
-| Binary smoke test        | done   |         |
-| Commit                   | done   | 1b632aa |
-| Plan updated             | done   |         |
+| Step                     | Status | Notes                                 |
+| ------------------------ | ------ | ------------------------------------- |
+| Delegate to @code-writer | done   |                                       |
+| Build verification       | done   |                                       |
+| Binary smoke test        | done   |                                       |
+| Delegate to @code-review | done   | Reviewed with TR-02; fixes in bbe3b55 |
+| Commit                   | done   | 1b632aa                               |
+| Plan updated             | done   |                                       |
 
 ---
 
@@ -340,15 +345,17 @@ Phase 3: Polish (3 tasks, ~3 hours)
 
 **Status:**
 
-| Step                       | Status  | Notes |
-| -------------------------- | ------- | ----- |
-| Delegate to @code-writer   | pending |       |
-| plutil validation          | pending |       |
-| Build verification         | pending |       |
-| UTI count verification     | pending |       |
-| DocType count verification | pending |       |
-| Commit                     | pending | SHA:  |
-| Plan updated               | pending |       |
+| Step                       | Status | Notes                                     |
+| -------------------------- | ------ | ----------------------------------------- |
+| Delegate to @code-writer   | done   |                                           |
+| plutil validation          | done   |                                           |
+| Build verification         | done   |                                           |
+| UTI count verification     | done   | 2 exported + 41 imported                  |
+| DocType count verification | done   | 57 entries covering 85 extensions         |
+| Delegate to @code-review   | done   | 1 blocker, 4 issues, 4 nits               |
+| Fix review findings        | done   | lsregister -u, mkdir -p, InfoDictVer, etc |
+| Commit                     | done   | bbe3b55                                   |
+| Plan updated               | done   |                                           |
 
 ---
 
