@@ -426,41 +426,74 @@ enum CLIHandler {
 
     /// Create `/usr/local/bin/trampoline` symlink pointing to the current
     /// executable. Exposed as a separate method so the GUI can call it too.
+    ///
+    /// Fast path: uses `FileManager` directly when the process already has
+    /// write access (e.g. `sudo make install`).
+    /// Slow path: falls back to `NSAppleScript` with `administrator privileges`
+    /// to trigger the standard macOS password prompt.
     static func installCLI() -> (success: Bool, message: String) {
         guard let executablePath = Bundle.main.executablePath else {
             return (false,
                     "Could not determine executable path from bundle.")
         }
         let symlinkPath = "/usr/local/bin/trampoline"
+        let dir = "/usr/local/bin"
         let fm = FileManager.default
 
-        // Ensure /usr/local/bin exists
-        let dir = "/usr/local/bin"
-        if !fm.fileExists(atPath: dir) {
-            return (false,
-                    "\(dir) does not exist. Create it first or use Homebrew.")
-        }
-
-        // Remove existing symlink if present
-        if fm.fileExists(atPath: symlinkPath) {
+        // Fast path: direct symlink creation when we already have permissions
+        if fm.isWritableFile(atPath: dir) {
+            if fm.fileExists(atPath: symlinkPath) {
+                do {
+                    try fm.removeItem(atPath: symlinkPath)
+                } catch {
+                    return (false,
+                            "Could not remove existing \(symlinkPath): \(error.localizedDescription)")
+                }
+            }
             do {
-                try fm.removeItem(atPath: symlinkPath)
+                try fm.createSymbolicLink(
+                    atPath: symlinkPath, withDestinationPath: executablePath)
             } catch {
                 return (false,
-                        "Could not remove existing \(symlinkPath): \(error.localizedDescription)")
+                        "Could not create symlink: \(error.localizedDescription)")
             }
+            return (true,
+                    "Symlink created: \(symlinkPath) -> \(executablePath)")
         }
 
-        // Create symlink
-        do {
-            try fm.createSymbolicLink(
-                atPath: symlinkPath, withDestinationPath: executablePath)
-        } catch {
+        // Slow path: privilege escalation via macOS admin prompt
+        let escapedPath = executablePath
+            .replacingOccurrences(of: "'", with: "'\\''")
+        let shellCmd = "mkdir -p '\(dir)'"
+            + " && rm -f '\(symlinkPath)'"
+            + " && ln -sf '\(escapedPath)' '\(symlinkPath)'"
+        // Escape backslashes and double-quotes for the AppleScript string layer
+        let appleScriptSafe = shellCmd
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+        let source = "do shell script \"\(appleScriptSafe)\" with administrator privileges"
+
+        guard let script = NSAppleScript(source: source) else {
             return (false,
-                    "Could not create symlink: \(error.localizedDescription)")
+                    "Could not create privilege-escalation script.")
         }
 
-        return (true, "Symlink created: \(symlinkPath) -> \(executablePath)")
+        var errorInfo: NSDictionary?
+        script.executeAndReturnError(&errorInfo)
+
+        if let info = errorInfo {
+            let code = (info[NSAppleScript.errorNumber] as? Int) ?? 0
+            if code == -128 {
+                return (false, "Installation cancelled.")
+            }
+            let desc = (info[NSAppleScript.errorMessage] as? String)
+                ?? "Unknown error (code \(code))"
+            return (false,
+                    "Could not create symlink with admin privileges: \(desc)")
+        }
+
+        return (true,
+                "Symlink created: \(symlinkPath) -> \(executablePath)")
     }
 
     private static func handleInstallCLI() {

@@ -25,7 +25,6 @@ struct ExtensionsTab: View {
 
     @State private var rows: [ExtensionRow] = []
     @State private var editors: [EditorInfo] = []
-    @State private var isLoading = true
     @State private var searchText = ""
     @State private var sortKey: SortKey = .status
     @State private var sortAscending = true
@@ -47,7 +46,7 @@ struct ExtensionsTab: View {
             toolbar
             Divider()
 
-            if isLoading {
+            if rows.isEmpty {
                 Spacer()
                 ProgressView("Querying handlers…")
                     .controlSize(.small)
@@ -288,7 +287,8 @@ struct ExtensionsTab: View {
     // MARK: - Actions
 
     private func loadStatuses() async {
-        isLoading = true
+        // Skip re-load on tab switch; claim actions refresh rows directly.
+        guard rows.isEmpty else { return }
 
         editors = EditorDetector.detectInstalledEditors()
 
@@ -311,7 +311,6 @@ struct ExtensionsTab: View {
                 hasOverride: hasOverride
             )
         }
-        isLoading = false
     }
 
     /// Claims every unclaimed extension regardless of the current search
@@ -343,7 +342,6 @@ struct ExtensionsTab: View {
     }
 
     private func performClaim(_ exts: [String]) {
-        isLoading = true
         let selectedIDs = Set(rows.filter(\.isSelected).map(\.id))
 
         Task.detached {
@@ -380,7 +378,6 @@ struct ExtensionsTab: View {
                         isSelected: selectedIDs.contains(item.ext)
                     )
                 }
-                isLoading = false
             }
         }
     }

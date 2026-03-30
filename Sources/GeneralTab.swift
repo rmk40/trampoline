@@ -196,16 +196,12 @@ struct GeneralTab: View {
 
     private var controlsRow: some View {
         Section {
-            HStack {
-                Toggle("Start at login", isOn: startAtLoginBinding)
-                Spacer()
-                Toggle("Show in menu bar", isOn: $config.showMenuBarIcon)
-                Spacer()
-                Button("Install CLI…") {
-                    let result = CLIHandler.installCLI()
-                    cliSuccess = result.success
-                    cliMessage = result.message
-                }
+            Toggle("Start at login", isOn: startAtLoginBinding)
+            Toggle("Show in menu bar", isOn: $config.showMenuBarIcon)
+            Button("Install CLI…") {
+                let result = CLIHandler.installCLI()
+                cliSuccess = result.success
+                cliMessage = result.message
             }
 
             if let message = cliMessage {
