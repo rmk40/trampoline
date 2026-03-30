@@ -19,6 +19,7 @@ install: all
 	@echo "Installing Trampoline.app..."
 	rm -rf /Applications/Trampoline.app
 	cp -R Trampoline.app /Applications/
+	codesign --force --deep --sign - /Applications/Trampoline.app
 	$(LSREGISTER) -f /Applications/Trampoline.app
 	@echo "Creating CLI symlink..."
 	mkdir -p /usr/local/bin
