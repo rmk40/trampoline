@@ -22,6 +22,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // GUI / file-forwarding mode
         NSLog("Trampoline ready")
+
+        // Show settings if no files are pending (e.g. launched from Dock).
+        if FileForwarder.shared.pendingFiles.isEmpty {
+            SettingsWindow.show()
+        }
     }
 
     // MARK: File open events
@@ -35,11 +40,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         case .noEditor:
             NSLog("Trampoline: no editor configured — %d file(s) queued",
                   urls.count)
+            SettingsWindow.showWithWarning(
+                "Choose an editor to open your files")
         case .editorNotFound:
-            if let id = ConfigStore.shared.editorBundleID {
-                NSLog("Trampoline: editor %@ not found — %d file(s) queued",
-                      id, urls.count)
-            }
+            let name = ConfigStore.shared.editorDisplayName
+                ?? ConfigStore.shared.editorBundleID ?? "Editor"
+            NSLog("Trampoline: editor not found — %d file(s) queued",
+                  urls.count)
+            SettingsWindow.showWithWarning(
+                "\(name) is no longer installed. Choose a different editor.")
         }
     }
 
@@ -55,8 +64,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         _ sender: NSApplication,
         hasVisibleWindows flag: Bool
     ) -> Bool {
-        // Will show settings window in TR-06
-        true
+        SettingsWindow.show()
+        return true
     }
 }
 

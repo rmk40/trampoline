@@ -702,13 +702,15 @@ Phase 3: Polish (3 tasks, ~3 hours)
 
 **Status:**
 
-| Step                     | Status  | Notes |
-| ------------------------ | ------- | ----- |
-| Delegate to @code-writer | pending |       |
-| Build verification       | pending |       |
-| Detection smoke test     | pending |       |
-| Commit                   | pending | SHA:  |
-| Plan updated             | pending |       |
+| Step                     | Status | Notes                           |
+| ------------------------ | ------ | ------------------------------- |
+| Delegate to @code-writer | done   |                                 |
+| Build verification       | done   |                                 |
+| Detection smoke test     | done   |                                 |
+| Delegate to @code-review | done   | 0 blockers, 2 issues, 3 nits    |
+| Fix review findings      | done   | dead code, .path deprecated, id |
+| Commit                   | done   | 7fad488                         |
+| Plan updated             | done   |                                 |
 
 ---
 

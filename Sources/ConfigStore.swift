@@ -51,4 +51,10 @@ final class ConfigStore {
     var claimedExtensions: [String] = [] {
         didSet { defaults.set(claimedExtensions, forKey: "claimedExtensions") }
     }
+
+    // MARK: - Transient state (not persisted to UserDefaults)
+
+    /// Warning message shown in GeneralTab (e.g. "Choose an editor…").
+    /// Stored here so SwiftUI can observe changes via @Observable.
+    var warningMessage: String?
 }
