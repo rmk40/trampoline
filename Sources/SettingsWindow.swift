@@ -14,10 +14,13 @@ enum SettingsWindow {
     // MARK: - Show
 
     static func show() {
+        // Activate BEFORE showing the window — an .accessory app can't
+        // own key window focus, so we must switch to .regular first.
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate()
+
         if let window = shared {
             window.makeKeyAndOrderFront(nil)
-            NSApp.setActivationPolicy(.regular)
-            NSApp.activate()
             return
         }
 
@@ -42,8 +45,6 @@ enum SettingsWindow {
 
         shared = window
         window.makeKeyAndOrderFront(nil)
-        NSApp.setActivationPolicy(.regular)
-        NSApp.activate()
     }
 
     static func showWithWarning(_ message: String) {
