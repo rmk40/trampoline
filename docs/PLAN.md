@@ -1091,17 +1091,17 @@ installed. Choose a different editor.")`
 
 **Status:**
 
-| Step                     | Status  | Notes |
-| ------------------------ | ------- | ----- |
-| Delegate to @code-writer | pending |       |
-| Build verification       | pending |       |
-| First-run flow test      | pending |       |
-| No-editor recovery test  | pending |       |
-| Editor-not-found test    | pending |       |
-| Delegate to @code-review | pending |       |
-| Fix findings             | pending |       |
-| Commit                   | pending | SHA:  |
-| Plan updated             | pending |       |
+| Step                     | Status | Notes                                   |
+| ------------------------ | ------ | --------------------------------------- |
+| Delegate to @code-writer | done   |                                         |
+| Build verification       | done   |                                         |
+| First-run flow test      | done   | welcome banner, gated UI sections       |
+| No-editor recovery test  | done   | warning + pending count                 |
+| Editor-not-found test    | done   | orange warning, retry on change         |
+| Delegate to @code-review | done   | 1 blocker, 2 issues, 3 nits             |
+| Fix findings             | done   | dead branch, stale pendingCount, guards |
+| Commit                   | done   | 7863bcd                                 |
+| Plan updated             | done   |                                         |
 
 ---
 

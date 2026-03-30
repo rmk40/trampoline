@@ -16,12 +16,21 @@ clean:
 	rm -f $(BINARY)
 
 install: all
+	@echo "Installing Trampoline.app..."
+	rm -rf /Applications/Trampoline.app
 	cp -R Trampoline.app /Applications/
 	$(LSREGISTER) -f /Applications/Trampoline.app
+	@echo "Creating CLI symlink..."
 	mkdir -p /usr/local/bin
-	ln -sf /Applications/Trampoline.app/Contents/MacOS/Trampoline /usr/local/bin/trampoline
+	ln -sf /Applications/Trampoline.app/Contents/MacOS/Trampoline \
+		/usr/local/bin/trampoline
+	@echo "Done. Run 'trampoline --help' to get started."
 
 uninstall:
+	@echo "Removing Trampoline..."
 	$(LSREGISTER) -u /Applications/Trampoline.app 2>/dev/null || true
 	rm -f /usr/local/bin/trampoline
 	rm -rf /Applications/Trampoline.app
+	@echo "Clearing preferences..."
+	defaults delete com.maelos.trampoline 2>/dev/null || true
+	@echo "Done."
