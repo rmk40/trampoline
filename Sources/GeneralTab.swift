@@ -318,11 +318,17 @@ struct GeneralTab: View {
 
     private func claimExtensions(_ exts: [String]) {
         guard !exts.isEmpty else { return }
-        ExtensionRegistry.claim(extensions: exts)
+        let results = ExtensionRegistry.claim(extensions: exts)
+        let failed = results.filter { !$0.success }
+        if !failed.isEmpty {
+            NSLog("Trampoline: failed to claim %d extension(s): %@",
+                  failed.count, failed.map { ".\($0.ext)" }.joined(separator: ", "))
+        }
 
         // Update ConfigStore's claimed list to match CLI behavior.
+        let succeeded = results.filter(\.success)
         var current = Set(config.claimedExtensions)
-        for ext in exts { current.insert(ext) }
+        for r in succeeded { current.insert(r.ext) }
         config.claimedExtensions = Array(current).sorted()
 
         // Mark first-run complete after claiming (F-01).

@@ -17,7 +17,7 @@ enum SettingsWindow {
         if let window = shared {
             window.makeKeyAndOrderFront(nil)
             NSApp.setActivationPolicy(.regular)
-            NSApp.activate(ignoringOtherApps: true)
+            NSApp.activate()
             return
         }
 
@@ -43,7 +43,7 @@ enum SettingsWindow {
         shared = window
         window.makeKeyAndOrderFront(nil)
         NSApp.setActivationPolicy(.regular)
-        NSApp.activate(ignoringOtherApps: true)
+        NSApp.activate()
     }
 
     static func showWithWarning(_ message: String) {

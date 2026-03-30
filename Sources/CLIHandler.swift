@@ -260,10 +260,10 @@ enum CLIHandler {
     // MARK: - release
 
     private static func handleRelease(_ args: [String]) {
-        // Release is the inverse of claim — not yet implemented.
-        // Placeholder for TR-07.
-        printErr("release: not yet implemented")
-        exit(exitError)
+        // Release is the inverse of claim — planned for a future version (TR-07).
+        printErr("The release command is planned for a future version.")
+        printErr("For now, use Finder > Get Info > Open With to change individual handlers.")
+        exit(exitSuccess)  // Not an error, just not implemented yet
     }
 
     // MARK: - install-cli

@@ -1,8 +1,8 @@
 # Trampoline Implementation Plan
 
-**Version:** 1.1
+**Version:** 1.2
 **Date:** 2026-03-29
-**Status:** Planning
+**Status:** Complete
 **Branch:** `main`
 **Source:** Design specification (`docs/00-overview.md` through `docs/06-phases.md`)
 **Estimated total effort:** 12-18 hours (6-9 sessions)
@@ -1180,13 +1180,15 @@ installed. Choose a different editor.")`
 
 **Status:**
 
-| Step                     | Status  | Notes |
-| ------------------------ | ------- | ----- |
-| Delegate to @code-writer | pending |       |
-| Install cycle test       | pending |       |
-| Uninstall cycle test     | pending |       |
-| Commit                   | pending | SHA:  |
-| Plan updated             | pending |       |
+| Step                     | Status | Notes                             |
+| ------------------------ | ------ | --------------------------------- |
+| Delegate to @code-writer | done   |                                   |
+| Install cycle test       | done   | build passes, ruby syntax ok      |
+| Uninstall cycle test     | done   | idempotent, lsregister -u guarded |
+| Delegate to @code-review | done   | 0 blockers, 2 issues, 4 nits      |
+| Fix findings             | done   | rm before cp, expanded zap stanza |
+| Commit                   | done   | dafacaf                           |
+| Plan updated             | done   |                                   |
 
 ---
 
@@ -1227,15 +1229,15 @@ installed. Choose a different editor.")`
 
 **Status:**
 
-| Step                     | Status  | Notes |
-| ------------------------ | ------- | ----- |
-| Delegate to @docs-writer | pending |       |
-| Delegate to @code-review | pending |       |
-| Fix review findings      | pending |       |
-| Re-review (if needed)    | pending |       |
-| Final smoke test         | pending |       |
-| Commit                   | pending | SHA:  |
-| Plan updated             | pending |       |
+| Step                     | Status  | Notes                                |
+| ------------------------ | ------- | ------------------------------------ |
+| Delegate to @docs-writer | done    | comprehensive README.md              |
+| Delegate to @code-review | done    | 0 blockers, 2 issues, 8 nits         |
+| Fix review findings      | done    | release msg, claim results, activate |
+| Re-review (if needed)    | skipped | no substantial changes needed        |
+| Final smoke test         | done    | DRY checks pass, CLI verified        |
+| Commit                   | done    | c2be0b8                              |
+| Plan updated             | done    |                                      |
 
 ---
 
