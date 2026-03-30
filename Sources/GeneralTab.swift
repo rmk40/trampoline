@@ -1,3 +1,4 @@
+import ServiceManagement
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -188,6 +189,8 @@ struct GeneralTab: View {
     private var controlsRow: some View {
         Section {
             HStack {
+                Toggle("Start at login", isOn: startAtLoginBinding)
+                Spacer()
                 Toggle("Show in menu bar", isOn: $config.showMenuBarIcon)
                 Spacer()
                 Button("Install CLI…") {
@@ -283,6 +286,31 @@ struct GeneralTab: View {
                 .foregroundStyle(style.textColor)
                 .font(.callout)
         }
+    }
+
+    // MARK: - Login item binding
+
+    /// Binding for the "Start at login" toggle. Uses SMAppService (macOS 13+)
+    /// to register/unregister the app as a login item.
+    private var startAtLoginBinding: Binding<Bool> {
+        Binding(
+            get: {
+                SMAppService.mainApp.status == .enabled
+            },
+            set: { enabled in
+                do {
+                    if enabled {
+                        try SMAppService.mainApp.register()
+                    } else {
+                        try SMAppService.mainApp.unregister()
+                    }
+                } catch {
+                    NSLog("Trampoline: failed to %@ login item: %@",
+                          enabled ? "register" : "unregister",
+                          error.localizedDescription)
+                }
+            }
+        )
     }
 
     // MARK: - Actions

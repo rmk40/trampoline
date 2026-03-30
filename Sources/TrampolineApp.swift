@@ -20,12 +20,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             exit(0)
         }
 
-        // GUI / file-forwarding mode
+        // GUI / file-forwarding mode — launch as menu bar agent.
+        // The app lives in the menu bar; no Dock icon by default.
         MenuBarManager.shared.setup()
         NSLog("Trampoline ready")
 
-        // Show settings if no files are pending (e.g. launched from Dock).
-        if FileForwarder.shared.pendingFiles.isEmpty {
+        // Only show settings automatically on first run (no editor configured).
+        // On subsequent launches, the app sits silently in the menu bar.
+        if !ConfigStore.shared.firstRunComplete {
             SettingsWindow.show()
         }
     }
