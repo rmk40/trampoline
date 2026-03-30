@@ -59,7 +59,7 @@ Other targets:
 Open `Trampoline.app` to access the settings window:
 
 - **General tab** -- Pick your default editor from a dropdown of detected editors. View extension status (claimed, unclaimed, owned by another app). Claim unclaimed extensions silently, or claim all extensions (may trigger macOS confirmation dialogs for contested ones).
-- **Extensions tab** -- Searchable table of all 85 managed extensions. See which app currently handles each one. Select individual extensions to claim or release.
+- **Extensions tab** -- Searchable table of all 85 managed extensions. See which app currently handles each one, and which editor each extension will open in. Select individual extensions to claim, release, or assign a per-extension editor override.
 - **About tab** -- Version info and links.
 
 An optional menu bar icon shows your current editor and extension count.
@@ -97,6 +97,10 @@ EXAMPLES:
     trampoline editor                    Show current editor
     trampoline editor zed                Set Zed as default
     trampoline editor com.microsoft.VSCode  Set by bundle ID
+    trampoline editor --list                    Show all editor overrides
+    trampoline editor .rs                       Show editor for .rs
+    trampoline editor .kt,.kts intellij         Override editor for extensions
+    trampoline editor .kt --clear               Clear override, use default
     trampoline status                    Show all extensions
     trampoline status --json             Machine-readable output
     trampoline claim                     Claim unclaimed only
@@ -152,6 +156,61 @@ trampoline claim
 # Claim all extensions, including those owned by other apps
 trampoline claim --all
 ```
+
+### Per-Extension Editor Routing
+
+By default, every file Trampoline handles opens in your global editor. You can override specific extensions to open in a different editor instead.
+
+#### How it works
+
+When Trampoline receives a file, it checks for an extension-level override first. If one exists, the file opens in the override editor. Otherwise, it falls back to the global default.
+
+```
+file.kt  -->  extension override for .kt?  -->  yes  -->  IntelliJ
+file.rs  -->  extension override for .rs?  -->  no   -->  global default (Zed)
+```
+
+#### CLI
+
+Set overrides by passing one or more dot-prefixed extensions followed by an editor name or bundle ID:
+
+```sh
+# Route JVM files to IntelliJ
+trampoline editor .kt,.kts,.scala intellij
+
+# Route notebooks to VS Code
+trampoline editor .ipynb vscode
+
+# List the global default and all overrides
+trampoline editor --list
+
+# Check which editor a single extension resolves to
+trampoline editor .kt
+
+# Clear an override (reverts to the global default)
+trampoline editor .kt --clear
+```
+
+Example output of `trampoline editor --list`:
+
+```
+DEFAULT: Zed (dev.zed.Zed)
+
+OVERRIDES (3):
+  .kt .kts .scala  ->  IntelliJ IDEA
+  .ipynb            ->  Visual Studio Code
+```
+
+#### GUI
+
+In the **Extensions tab**:
+
+1. Select one or more extensions using the checkboxes.
+2. Click **Set Editor...** in the footer bar.
+3. Pick an editor from the list of detected editors, or click **Browse...** to choose any `.app` on disk.
+4. The Editor column updates immediately. Overridden extensions show the editor name in bold; others show the global default in gray.
+
+To revert selected extensions back to the global default, select them and click **Clear Editor**.
 
 ## Managed Extensions
 
@@ -227,7 +286,7 @@ Any JetBrains IDE (`com.jetbrains.*`) is also recognized automatically.
 
 | Tool                 | Approach                                      | File types | URLs | Open source | Limitations                                                  |
 | -------------------- | --------------------------------------------- | ---------- | ---- | ----------- | ------------------------------------------------------------ |
-| **Trampoline**       | Registers as handler, forwards to editor      | Yes        | No   | Yes (MIT)   | macOS 14+ only, one editor for all extensions (v1)           |
+| **Trampoline**       | Registers as handler, forwards to editor      | Yes        | No   | Yes (MIT)   | macOS 14+ only                                               |
 | **duti**             | Calls `LSSetDefaultRoleHandlerForContentType` | Yes        | Yes  | Yes         | Triggers a confirmation dialog per extension on modern macOS |
 | **SwiftDefaultApps** | System Preferences pane + CLI (`swda`)        | Yes        | Yes  | Yes (MIT)   | Preferences pane deprecated in macOS 13+, same dialog issue  |
 | **OpenIn**           | Trampoline pattern for URLs + files           | Yes        | Yes  | No ($10)    | Paid, primarily URL-focused, not developer-file-oriented     |

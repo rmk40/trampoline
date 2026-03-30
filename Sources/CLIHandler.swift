@@ -173,7 +173,7 @@ enum CLIHandler {
             for ext in exts {
                 let dotExt = ".\(ext)"
                 if let resolved = store.resolvedEditor(for: ext) {
-                    let isOverride = store.editorOverrides[ext] != nil
+                    let isOverride = store.editorOverrides[ext.lowercased()] != nil
                     let tag = isOverride ? "override" : "default"
                     print("\(dotExt): \(resolved.bundleID) (\(resolved.displayName)) [\(tag)]")
                 } else {
