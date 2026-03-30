@@ -68,6 +68,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         SettingsWindow.show()
         return true
     }
+
+    // MARK: Menu bar actions (for main menu keyboard shortcuts)
+
+    @objc func showSettings() {
+        SettingsWindow.show()
+    }
+
+    @objc func showSettingsAbout() {
+        SettingsWindow.show()
+    }
 }
 
 // MARK: - Entry point
@@ -79,6 +89,46 @@ enum Trampoline {
     static func main() {
         let app = NSApplication.shared
         app.delegate = appDelegate
+        app.mainMenu = buildMainMenu()
         app.run()
+    }
+
+    /// Builds the application main menu so Cmd+Q and other standard
+    /// shortcuts work. Status item menus don't participate in the
+    /// key-event responder chain, so without this, no keyboard
+    /// shortcuts function.
+    private static func buildMainMenu() -> NSMenu {
+        let mainMenu = NSMenu()
+
+        // Application menu (shows as "Trampoline" in the menu bar)
+        let appMenuItem = NSMenuItem()
+        let appMenu = NSMenu()
+        appMenu.addItem(withTitle: "About Trampoline",
+                        action: #selector(AppDelegate.showSettingsAbout),
+                        keyEquivalent: "")
+        appMenu.addItem(.separator())
+        appMenu.addItem(withTitle: "Settings\u{2026}",
+                        action: #selector(AppDelegate.showSettings),
+                        keyEquivalent: ",")
+        appMenu.addItem(.separator())
+        appMenu.addItem(withTitle: "Quit Trampoline",
+                        action: #selector(NSApplication.terminate(_:)),
+                        keyEquivalent: "q")
+        appMenuItem.submenu = appMenu
+        mainMenu.addItem(appMenuItem)
+
+        // Window menu (enables Cmd+W to close the settings window)
+        let windowMenuItem = NSMenuItem()
+        let windowMenu = NSMenu(title: "Window")
+        windowMenu.addItem(withTitle: "Minimize",
+                           action: #selector(NSWindow.miniaturize(_:)),
+                           keyEquivalent: "m")
+        windowMenu.addItem(withTitle: "Close",
+                           action: #selector(NSWindow.performClose(_:)),
+                           keyEquivalent: "w")
+        windowMenuItem.submenu = windowMenu
+        mainMenu.addItem(windowMenuItem)
+
+        return mainMenu
     }
 }

@@ -55,14 +55,6 @@
     <circle cx="352" cy="468" r="38" fill="url(#accent)"/>
     <circle cx="352" cy="468" r="14" fill="white" fill-opacity="0.95"/>
 
-    <g transform="translate(652 286)">
-      <path d="M0 42C0 18.804 18.804 0 42 0H138L214 76V238C214 261.196 195.196 280 172 280H42C18.804 280 0 261.196 0 238V42Z" fill="white" fill-opacity="0.96"/>
-      <path d="M138 0V50C138 64.359 149.641 76 164 76H214" fill="#DDEAFE"/>
-      <path d="M60 116H152" stroke="#7C3AED" stroke-width="18" stroke-linecap="round"/>
-      <circle cx="84" cy="194" r="24" fill="#38BDF8"/>
-      <path d="M132 194H164" stroke="#0F172A" stroke-width="18" stroke-linecap="round"/>
-    </g>
-
     <rect x="96" y="96" width="832" height="832" rx="188" stroke="white" stroke-opacity="0.08" stroke-width="6"/>
   </g>
 </svg>
