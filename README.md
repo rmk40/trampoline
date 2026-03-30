@@ -1,298 +1,168 @@
 # Trampoline
 
-A macOS app that makes developer files open in your preferred code editor -- without clicking through dozens of confirmation dialogs.
+A macOS menu bar app that makes developer files open in your preferred
+code editor -- no confirmation dialogs, no clicking through Finder
+preferences for every file type.
 
-## What It Does
+## The Problem
 
-macOS has no good way to set a single editor as the default handler for all developer file extensions. The `LSSetDefaultRoleHandlerForContentType` API (used by tools like `duti`) triggers a confirmation dialog for each extension. Directly editing the LaunchServices database corrupts it.
+You install a code editor. You want `.ts`, `.rs`, `.go`, `.vue`, and
+dozens of other developer files to open in it. macOS has no "set default
+editor for all code files" option. Your choices:
 
-Trampoline solves this with a **trampoline pattern**: it registers itself as the default handler for 85 developer file extensions via `CFBundleDocumentTypes` in its `Info.plist`. When you double-click a file, Trampoline receives the open event and immediately forwards it to your configured editor. Trampoline is invisible -- you see the file open in your editor as if it were the default handler all along.
+- **Finder > Get Info > Open With > Change All** -- one file type at a
+  time, 85 times
+- **`duti` or `swda`** -- triggers a macOS confirmation dialog for each
+  extension, 85 times
+- **Edit the LaunchServices database directly** -- corrupts it
 
-## How It Works
+## The Solution
 
-1. **Registration.** Trampoline's `Info.plist` declares `CFBundleDocumentTypes` for 85 file extensions. For extensions with no existing system UTI (like `.rs`, `.vue`, `.zig`), Trampoline exports custom UTIs and claims them with `LSHandlerRank = Owner`. For extensions already claimed by system apps (like `.json`, `.py`, `.sh`), it declares `LSHandlerRank = Alternate` to avoid conflicts until you explicitly claim them.
+Install Trampoline. Pick your editor. Done.
 
-2. **Forwarding.** When macOS sends an "open file" event to Trampoline, it reads your configured editor from preferences and opens the file in that editor via `NSWorkspace`. Trampoline never displays the file itself.
+Trampoline registers itself as the handler for 85 developer file
+extensions. When you double-click a `.rs` file, macOS sends it to
+Trampoline, which instantly forwards it to your editor. You never see
+Trampoline -- the file opens in your editor as if it were the default
+handler.
 
-3. **Claiming.** You choose which extensions Trampoline handles. Extensions with no current handler can be claimed silently. Extensions owned by another app (like Xcode) require a one-time confirmation dialog from macOS.
+60 of the 85 extensions are handled silently with zero dialogs. The
+remaining 25 (common types like `.json`, `.py`, `.sh` that are already
+claimed by Xcode or Terminal) can be claimed with a one-time
+confirmation dialog per extension.
 
 ## Installation
-
-### Homebrew (coming soon)
-
-```sh
-brew install --cask trampoline
-```
-
-> The Homebrew cask is not yet published. In the meantime, download from [GitHub Releases](https://github.com/maelos/trampoline/releases).
-
-### Manual Download
-
-1. Download `Trampoline-<version>.zip` from [GitHub Releases](https://github.com/maelos/trampoline/releases).
-2. Unzip and move `Trampoline.app` to `/Applications`.
-3. Open `Trampoline.app` once to register its file type declarations with Launch Services.
 
 ### Build from Source
 
 Requires Xcode Command Line Tools and macOS 14.0 (Sonoma) or later.
 
 ```sh
-git clone https://github.com/maelos/trampoline.git
+git clone https://github.com/rmk40/trampoline.git
 cd trampoline
-make all        # Compile the app bundle
-make install    # Copy to /Applications, register with Launch Services, create CLI symlink
+make install
 ```
 
-Other targets:
+This compiles the app, copies it to `/Applications`, registers it with
+macOS, and creates the `trampoline` CLI at `/usr/local/bin/trampoline`.
 
-| Command          | Description                                                                                     |
-| ---------------- | ----------------------------------------------------------------------------------------------- |
-| `make all`       | Compile `Trampoline.app/Contents/MacOS/Trampoline`                                              |
-| `make install`   | Copy to `/Applications`, register with `lsregister`, symlink CLI to `/usr/local/bin/trampoline` |
-| `make clean`     | Remove the compiled binary                                                                      |
-| `make uninstall` | Remove the app, CLI symlink, and preferences                                                    |
+To uninstall:
 
-## Usage
+```sh
+make uninstall
+```
+
+## Quick Start
 
 ### GUI
 
-Open `Trampoline.app` to access the settings window:
-
-- **General tab** -- Pick your default editor from a dropdown of detected editors. View extension status (claimed, unclaimed, owned by another app). Claim unclaimed extensions silently, or claim all extensions (may trigger macOS confirmation dialogs for contested ones).
-- **Extensions tab** -- Searchable table of all 85 managed extensions. See which app currently handles each one, and which editor each extension will open in. Select individual extensions to claim, release, or assign a per-extension editor override.
-- **About tab** -- Version info and links.
-
-An optional menu bar icon shows your current editor and extension count.
+1. Launch Trampoline -- it appears in the menu bar
+2. Click the menu bar icon > **Settings...**
+3. Pick your editor from the dropdown
+4. Optionally click **Claim Unclaimed** to take over the remaining
+   system-owned extensions
 
 ### CLI
 
-The CLI is built into the app binary. After installation, it is available at `/usr/local/bin/trampoline`. You can also create the symlink from the GUI (Settings > Install CLI) or by running:
+```sh
+trampoline editor zed          # Set your editor
+trampoline status              # See which extensions are handled
+trampoline claim               # Claim unclaimed extensions
+```
+
+## Per-Extension Editor Routing
+
+By default, every file opens in your global editor. You can override
+specific extensions to use different editors:
 
 ```sh
-trampoline install-cli
-```
-
-Full help output:
-
-```
-$ trampoline --help
-Trampoline - Developer file handler for macOS
-
-USAGE:
-    trampoline <command> [options]
-
-COMMANDS:
-    editor [name|bundle-id]    Get or set the default editor
-    status                     Show extension handler status
-    claim [--all]              Claim extensions as Trampoline
-    release [--all]            Release extensions back to system
-    install-cli                Create /usr/local/bin/trampoline symlink
-    uninstall                  Remove CLI, clear preferences
-
-OPTIONS:
-    -h, --help                 Show this help
-    -v, --version              Show version
-
-EXAMPLES:
-    trampoline editor                    Show current editor
-    trampoline editor zed                Set Zed as default
-    trampoline editor com.microsoft.VSCode  Set by bundle ID
-    trampoline editor --list                    Show all editor overrides
-    trampoline editor .rs                       Show editor for .rs
-    trampoline editor .kt,.kts intellij         Override editor for extensions
-    trampoline editor .kt --clear               Clear override, use default
-    trampoline status                    Show all extensions
-    trampoline status --json             Machine-readable output
-    trampoline claim                     Claim unclaimed only
-    trampoline claim --all               Claim all (may show dialogs)
-```
-
-#### Set your editor
-
-```sh
-# By shorthand
-trampoline editor zed
-
-# By bundle ID
-trampoline editor com.microsoft.VSCode
-
-# Show current editor
-trampoline editor
-```
-
-#### Check extension status
-
-```sh
-trampoline status
-```
-
-```
-Trampoline v1.0
-Editor: Zed (dev.zed.Zed)
-
-CLAIMED (60)
-  .ts .tsx .jsx .rs .go .zig .nim .kt .kts .scala .sc .groovy .gvy
-  .cs .fs .fsi .fsx .dart .lua .coffee .ex .exs .elm .hs .lhs .ml
-  .mli .tf .tfvars .hcl .toml .nix .dhall .graphql .gql .proto ...
-
-OTHER (15)
-  .json       Xcode
-  .xml        Xcode
-  .swift      Xcode
-  .py         Xcode
-  .sh         Terminal
-  ...
-
-UNCLAIMED (9)
-  .tsv .lock .gitignore .gitattributes .editorconfig .dockerfile ...
-```
-
-#### Claim extensions
-
-```sh
-# Claim only unclaimed extensions (no dialogs)
-trampoline claim
-
-# Claim all extensions, including those owned by other apps
-trampoline claim --all
-```
-
-### Per-Extension Editor Routing
-
-By default, every file Trampoline handles opens in your global editor. You can override specific extensions to open in a different editor instead.
-
-#### How it works
-
-When Trampoline receives a file, it checks for an extension-level override first. If one exists, the file opens in the override editor. Otherwise, it falls back to the global default.
-
-```
-file.kt  -->  extension override for .kt?  -->  yes  -->  IntelliJ
-file.rs  -->  extension override for .rs?  -->  no   -->  global default (Zed)
-```
-
-#### CLI
-
-Set overrides by passing one or more dot-prefixed extensions followed by an editor name or bundle ID:
-
-```sh
-# Route JVM files to IntelliJ
+# JVM files in IntelliJ, notebooks in VS Code
 trampoline editor .kt,.kts,.scala intellij
-
-# Route notebooks to VS Code
 trampoline editor .ipynb vscode
 
-# List the global default and all overrides
+# See all overrides
 trampoline editor --list
 
-# Check which editor a single extension resolves to
-trampoline editor .kt
-
-# Clear an override (reverts to the global default)
+# Clear an override
 trampoline editor .kt --clear
 ```
 
-Example output of `trampoline editor --list`:
+Or in the GUI: **Extensions tab** > select extensions > **Set Editor...**
 
-```
-DEFAULT: Zed (dev.zed.Zed)
-
-OVERRIDES (3):
-  .kt .kts .scala  ->  IntelliJ IDEA
-  .ipynb            ->  Visual Studio Code
-```
-
-#### GUI
-
-In the **Extensions tab**:
-
-1. Select one or more extensions using the checkboxes.
-2. Click **Set Editor...** in the footer bar.
-3. Pick an editor from the list of detected editors, or click **Browse...** to choose any `.app` on disk.
-4. The Editor column updates immediately. Overridden extensions show the editor name in bold; others show the global default in gray.
-
-To revert selected extensions back to the global default, select them and click **Clear Editor**.
-
-## Managed Extensions
-
-Trampoline manages 85 file extensions across 20 categories. Extensions with custom UTIs (marked with `*`) are claimed as primary handler. Extensions with system or dynamic UTIs are declared as alternate handler until you explicitly claim them.
-
-### Languages
-
-| Category   | Extensions                                    |
-| ---------- | --------------------------------------------- |
-| TypeScript | `.ts` `.mts` `.cts`                           |
-| React      | `.tsx` `.jsx`                                 |
-| Systems    | `.rs` `.go` `.zig` `.nim`                     |
-| JVM        | `.kt` `.kts` `.scala` `.sc` `.groovy` `.gvy`  |
-| .NET       | `.cs` `.fs` `.fsi` `.fsx`                     |
-| Mobile     | `.dart`                                       |
-| Scripting  | `.lua` `.coffee` `.py` `.rb`                  |
-| Functional | `.ex` `.exs` `.elm` `.hs` `.lhs` `.ml` `.mli` |
-| R          | `.r` `.R`                                     |
-
-### Web and Markup
+## Managed Extensions (85)
 
 | Category       | Extensions                                                                              |
 | -------------- | --------------------------------------------------------------------------------------- |
+| TypeScript     | `.ts` `.mts` `.cts` `.tsx`                                                              |
+| React          | `.jsx`                                                                                  |
 | Web frameworks | `.vue` `.svelte` `.astro`                                                               |
+| Systems        | `.rs` `.go` `.zig` `.nim`                                                               |
+| JVM            | `.kt` `.kts` `.scala` `.sc` `.groovy` `.gvy`                                            |
+| .NET           | `.cs` `.fs` `.fsi` `.fsx`                                                               |
+| Mobile         | `.dart`                                                                                 |
+| Scripting      | `.lua` `.coffee` `.py` `.rb`                                                            |
+| Functional     | `.ex` `.exs` `.elm` `.hs` `.lhs` `.ml` `.mli`                                           |
+| R              | `.r` `.R`                                                                               |
 | Stylesheets    | `.sass` `.scss` `.less` `.styl`                                                         |
 | Templates      | `.jade` `.pug` `.ejs` `.hbs` `.handlebars` `.mustache` `.twig` `.jinja` `.jinja2` `.j2` |
 | Documents      | `.mdx` `.ipynb`                                                                         |
-
-### Data and Config
-
-| Category   | Extensions                                     |
-| ---------- | ---------------------------------------------- |
-| Data       | `.json` `.yaml` `.yml` `.xml` `.sql` `.tsv`    |
-| Config/IaC | `.tf` `.tfvars` `.hcl` `.toml` `.nix` `.dhall` |
-| Config     | `.env` `.conf` `.properties`                   |
-| Schema     | `.graphql` `.gql` `.proto` `.prisma`           |
-
-### Infrastructure and Tooling
-
-| Category         | Extensions                     |
-| ---------------- | ------------------------------ |
-| Shell            | `.sh` `.bash` `.zsh`           |
-| Build            | `.makefile` `.cmake` `.gradle` |
-| Containers       | `.dockerfile`                  |
-| Package managers | `.lock`                        |
-| Git              | `.gitignore` `.gitattributes`  |
-| Editor config    | `.editorconfig`                |
-| Ruby             | `.gemspec`                     |
-| Version control  | `.patch` `.diff`               |
+| Data           | `.json` `.yaml` `.yml` `.xml` `.sql` `.tsv`                                             |
+| Config/IaC     | `.tf` `.tfvars` `.hcl` `.toml` `.nix` `.dhall` `.env` `.conf` `.properties`             |
+| Schema         | `.graphql` `.gql` `.proto` `.prisma`                                                    |
+| Shell          | `.sh` `.bash` `.zsh`                                                                    |
+| Build          | `.makefile` `.cmake` `.gradle`                                                          |
+| Containers     | `.dockerfile`                                                                           |
+| Other          | `.lock` `.gitignore` `.gitattributes` `.editorconfig` `.gemspec` `.patch` `.diff`       |
 
 ## Supported Editors
 
-Trampoline recognizes these editors by shorthand, bundle ID, or display name. You can also use any `.app` bundle not on this list by passing its bundle ID directly.
+Use the shorthand, bundle ID, or display name when setting your editor.
+Any `.app` on your system works -- these are just the ones with
+built-in shortcuts.
 
-| Shorthand         | Bundle ID                       | Display Name       |
-| ----------------- | ------------------------------- | ------------------ |
-| `zed`             | `dev.zed.Zed`                   | Zed                |
-| `vscode`          | `com.microsoft.VSCode`          | Visual Studio Code |
-| `vscode-insiders` | `com.microsoft.VSCodeInsiders`  | VS Code Insiders   |
-| `cursor`          | `com.todesktop.230313mzl4w4u92` | Cursor             |
-| `sublime`         | `com.sublimetext.4`             | Sublime Text       |
-| `sublime3`        | `com.sublimetext.3`             | Sublime Text 3     |
-| `nova`            | `com.panic.Nova`                | Nova               |
-| `bbedit`          | `com.barebones.bbedit`          | BBEdit             |
-| `textmate`        | `com.macromates.TextMate`       | TextMate           |
-| `webstorm`        | `com.jetbrains.WebStorm`        | WebStorm           |
-| `intellij`        | `com.jetbrains.intellij`        | IntelliJ IDEA      |
-| `fleet`           | `com.jetbrains.fleet`           | Fleet              |
+| Shorthand         | Editor             |
+| ----------------- | ------------------ |
+| `zed`             | Zed                |
+| `vscode`          | Visual Studio Code |
+| `vscode-insiders` | VS Code Insiders   |
+| `cursor`          | Cursor             |
+| `sublime`         | Sublime Text       |
+| `nova`            | Nova               |
+| `bbedit`          | BBEdit             |
+| `textmate`        | TextMate           |
+| `webstorm`        | WebStorm           |
+| `intellij`        | IntelliJ IDEA      |
+| `fleet`           | Fleet              |
 
-Any JetBrains IDE (`com.jetbrains.*`) is also recognized automatically.
+All JetBrains IDEs are recognized automatically.
 
-## Comparison with Alternatives
+## CLI Reference
 
-| Tool                 | Approach                                      | File types | URLs | Open source | Limitations                                                  |
-| -------------------- | --------------------------------------------- | ---------- | ---- | ----------- | ------------------------------------------------------------ |
-| **Trampoline**       | Registers as handler, forwards to editor      | Yes        | No   | Yes (MIT)   | macOS 14+ only                                               |
-| **duti**             | Calls `LSSetDefaultRoleHandlerForContentType` | Yes        | Yes  | Yes         | Triggers a confirmation dialog per extension on modern macOS |
-| **SwiftDefaultApps** | System Preferences pane + CLI (`swda`)        | Yes        | Yes  | Yes (MIT)   | Preferences pane deprecated in macOS 13+, same dialog issue  |
-| **OpenIn**           | Trampoline pattern for URLs + files           | Yes        | Yes  | No ($10)    | Paid, primarily URL-focused, not developer-file-oriented     |
-| **Finicky**          | Trampoline pattern for URLs                   | No         | Yes  | Yes (MIT)   | Browser routing only, does not handle file types             |
+```
+trampoline editor                           Show current editor
+trampoline editor zed                       Set default editor
+trampoline editor com.example.MyEditor      Set by bundle ID
+trampoline editor .ext                      Show editor for extension
+trampoline editor .kt,.kts intellij         Set per-extension override
+trampoline editor .kt --clear               Clear override
+trampoline editor --list                    Show all overrides
+trampoline status                           Show extension status
+trampoline status --json                    Machine-readable status
+trampoline claim                            Claim unclaimed extensions
+trampoline claim --all                      Claim all (may show dialogs)
+trampoline install-cli                      Create CLI symlink
+trampoline uninstall                        Remove CLI and preferences
+```
 
-Trampoline is purpose-built for the developer file type problem. It manages 85 extensions out of the box, exports custom UTIs for types that macOS does not natively recognize, and provides both a GUI and CLI for managing handler registration. Unlike `duti` and `swda`, it avoids the per-extension dialog problem by acting as the handler itself rather than trying to reassign handlers through the LaunchServices API.
+## Alternatives
+
+| Tool                 | Approach                            | Dialogs?                           | Open source |
+| -------------------- | ----------------------------------- | ---------------------------------- | ----------- |
+| **Trampoline**       | Registers as handler, forwards      | 0 for 60 extensions, 1 each for 25 | Yes (MIT)   |
+| **duti**             | Reassigns handlers via LS API       | 1 per extension                    | Yes         |
+| **SwiftDefaultApps** | System Preferences pane             | 1 per extension                    | Yes         |
+| **OpenIn**           | Trampoline pattern for URLs + files | Varies                             | No ($10)    |
+| **Finicky**          | Trampoline pattern for URLs only    | N/A                                | Yes         |
 
 ## Requirements
 
