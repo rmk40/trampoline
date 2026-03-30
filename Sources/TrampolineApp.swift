@@ -1,12 +1,5 @@
 import AppKit
 
-// MARK: - CLI subcommands recognised at launch
-
-private let cliSubcommands: Set<String> = [
-    "editor", "status", "claim", "install-cli", "uninstall",
-    "--help", "--version", "-h", "-v",
-]
-
 // MARK: - App Delegate
 
 class AppDelegate: NSObject, NSApplicationDelegate {
@@ -17,14 +10,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let args = CommandLine.arguments
-        let isCLI = args.count > 1 && cliSubcommands.contains(args[1])
+        let isCLI = args.count > 1 && CLIHandler.subcommands.contains(args[1])
 
         if isCLI {
             isCLIMode = true
-            NSLog("Trampoline: CLI mode detected — not yet implemented")
-            print("CLI mode: not yet implemented")
-            // Safe to exit here: we are in CLI mode before any AppKit windows
-            // or run-loop state have been initialised.
+            CLIHandler.run()
+            // CLIHandler.run() calls exit() — this line is unreachable,
+            // but kept as a safety net.
             exit(0)
         }
 

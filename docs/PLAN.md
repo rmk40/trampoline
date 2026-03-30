@@ -466,15 +466,15 @@ Phase 3: Polish (3 tasks, ~3 hours)
 
 **Status:**
 
-| Step                       | Status  | Notes |
-| -------------------------- | ------- | ----- |
-| Delegate to @code-writer   | pending |       |
-| Build verification         | pending |       |
-| File forwarding smoke test | pending |       |
-| Delegate to @code-review   | pending |       |
-| Fix review findings        | pending |       |
-| Commit                     | pending | SHA:  |
-| Plan updated               | pending |       |
+| Step                       | Status | Notes                                              |
+| -------------------------- | ------ | -------------------------------------------------- |
+| Delegate to @code-writer   | done   |                                                    |
+| Build verification         | done   |                                                    |
+| File forwarding smoke test | done   | tested via --help stub                             |
+| Delegate to @code-review   | done   | 1 blocker, 4 issues, 5 nits                        |
+| Fix review findings        | done   | retry dup bug, @Observable, pendingFiles, delegate |
+| Commit                     | done   | 254c3c4                                            |
+| Plan updated               | done   |                                                    |
 
 ---
 
