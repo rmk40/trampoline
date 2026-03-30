@@ -3,7 +3,7 @@ import AppKit
 /// Manages the optional NSStatusItem in the macOS menu bar.
 /// Visibility is driven by `ConfigStore.shared.showMenuBarIcon`.
 @MainActor
-final class MenuBarManager: NSObject {
+final class MenuBarManager: NSObject, NSMenuDelegate {
 
     static let shared = MenuBarManager()
 
@@ -38,7 +38,6 @@ final class MenuBarManager: NSObject {
             if statusItem == nil {
                 createStatusItem()
             }
-            updateMenu()
         } else {
             teardown()
         }
@@ -48,13 +47,20 @@ final class MenuBarManager: NSObject {
 
     /// Rebuilds the menu with current editor name and extension count.
     func updateMenu() {
-        guard let statusItem else { return }
+        guard let menu = statusItem?.menu else { return }
 
-        let menu = NSMenu()
+        menu.removeAllItems()
 
         let editorName = ConfigStore.shared.editorDisplayName ?? "None"
+        let overrideCount = ConfigStore.shared.editorOverrides.count
+        let editorTitle: String
+        if overrideCount > 0 {
+            editorTitle = "Editor: \(editorName) (+\(overrideCount) override\(overrideCount == 1 ? "" : "s"))"
+        } else {
+            editorTitle = "Editor: \(editorName)"
+        }
         let editorItem = NSMenuItem(
-            title: "Editor: \(editorName)", action: nil, keyEquivalent: "")
+            title: editorTitle, action: nil, keyEquivalent: "")
         editorItem.isEnabled = false
         menu.addItem(editorItem)
 
@@ -79,8 +85,6 @@ final class MenuBarManager: NSObject {
             keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
-
-        statusItem.menu = menu
     }
 
     // MARK: - Private
@@ -97,7 +101,18 @@ final class MenuBarManager: NSObject {
             button.image = image
         }
 
+        let menu = NSMenu()
+        menu.delegate = self
+        item.menu = menu
+
         statusItem = item
+    }
+
+    // MARK: - NSMenuDelegate
+
+    /// Rebuilds menu items on demand so the menu always reflects current state.
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        updateMenu()
     }
 
     /// Observes `showMenuBarIcon` via Swift Observation's

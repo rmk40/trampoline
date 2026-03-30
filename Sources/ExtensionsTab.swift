@@ -416,7 +416,9 @@ struct ExtensionsTab: View {
         }
         guard let bundle = Bundle(url: url),
               let bundleID = bundle.bundleIdentifier else {
-            NSLog("Trampoline: selected app has no bundle identifier: %@", url.path)
+            NSLog("Trampoline: selected app has no bundle identifier: %@",
+                  url.path(percentEncoded: false))
+            showEditorPicker = false
             return
         }
         let displayName = bundle.infoDictionary?["CFBundleName"] as? String

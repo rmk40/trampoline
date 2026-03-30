@@ -94,6 +94,14 @@ struct GeneralTab: View {
 
             if !isFirstRunPending {
                 statusBanner
+
+                if !config.editorOverrides.isEmpty {
+                    let count = config.editorOverrides.count
+                    Text("\(count) extension\(count == 1 ? "" : "s") use\(count == 1 ? "s" : "") a different editor (see Extensions tab)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
                 controlsRow
                 extensionSection
             }
