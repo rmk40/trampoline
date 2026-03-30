@@ -1,8 +1,8 @@
 # Trampoline Implementation Plan
 
-**Version:** 1.3
+**Version:** 1.4
 **Date:** 2026-03-30
-**Status:** Complete (Phase 4 claim fix applied)
+**Status:** In progress — Phase 5 (per-extension editor routing)
 **Branch:** `main`
 **Source:** Design specification (`docs/00-overview.md` through `docs/06-phases.md`)
 **Estimated total effort:** 12-18 hours (6-9 sessions)
@@ -1816,6 +1816,631 @@ differently:
 | Fix review findings      | done   | plist comment, release filter, binding guard                      |
 | Commit                   | done   | 2f6eaf2                                                           |
 | Plan updated             | done   |                                                                   |
+
+---
+
+## Phase 5: Per-Extension Editor Routing
+
+### Background
+
+Trampoline v1.0 routes ALL files to a single global editor. Real-world
+users often want different editors for different file types — for example,
+Zed for everything except `.ipynb` (VS Code) and JVM files (IntelliJ).
+
+This phase adds **per-extension editor overrides** on top of the existing
+global default. The model is "default + overrides": any extension without
+an explicit override uses the global editor (fully backward-compatible).
+
+### Design Decisions
+
+| #   | Topic                       | Decision                                                             | Rationale                                                                                     |
+| --- | --------------------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| 17  | Override model              | Default editor + per-extension overrides (not per-category)          | Covers 95% of use cases; per-category adds complexity for marginal gain                       |
+| 18  | Override storage            | `[String: String]` dict in UserDefaults (ext -> bundleID)            | Simple, CLI-accessible, no migration needed for existing users                                |
+| 19  | Bulk assignment UX          | Multi-select in ExtensionsTab + "Set Editor..." button with popover  | Reuses existing checkbox infrastructure; avoids per-row picker clutter                        |
+| 20  | Resolution order            | Extension override -> global default -> nil                          | Simple two-tier; per-category can be added later if needed                                    |
+| 21  | FileForwarder grouping      | Group incoming URLs by resolved editor, one NSWorkspace.open per app | macOS opens all files for an app in a single activation; grouping preserves this optimization |
+| 22  | CLI extension-scoped syntax | `trampoline editor .ext [editor]` (dot prefix = extension scope)     | Unambiguous: `.rs` is an extension, `zed` is an editor; no flags needed                       |
+
+### Files Changed
+
+| File                           | Change                                                   | Estimated LOC |
+| ------------------------------ | -------------------------------------------------------- | ------------- |
+| `Sources/ConfigStore.swift`    | Override dict, resolver, bulk set/clear                  | ~30           |
+| `Sources/FileForwarder.swift`  | Group URLs by resolved editor                            | ~35           |
+| `Sources/CLIHandler.swift`     | Per-extension `editor` syntax, `--list`, status `--json` | ~70           |
+| `Sources/ExtensionsTab.swift`  | Editor column, "Set Editor..." popover, "Clear Editor"   | ~120          |
+| `Sources/GeneralTab.swift`     | Override count note                                      | ~10           |
+| `Sources/MenuBarManager.swift` | Override count in menu label                             | ~5            |
+| `README.md`                    | Document per-extension routing                           | ~20           |
+
+### Execution Sequence
+
+```
+ER-01 (ConfigStore: overrides + resolver)
+  -> review -> commit
+ER-02 (FileForwarder: group by resolved editor)
+  -> review -> commit
+ER-03 (CLIHandler: per-extension editor commands)
+  -> review -> CLI smoke test -> commit
+ER-04 (ExtensionsTab: editor column + bulk Set Editor)
+  -> review -> LOOK -> commit
+ER-05 (GeneralTab + MenuBarManager: override indicators)
+  -> review -> commit
+ER-06 (README + final review)
+  -> review -> commit
+```
+
+---
+
+### ER-01: ConfigStore — Override Dictionary and Resolver
+
+**Estimated effort:** 20 minutes
+**Dependencies:** None
+**References:** `Sources/ConfigStore.swift`
+
+**Delegation prompt for `@code-writer`:**
+
+> Read and modify `Sources/ConfigStore.swift` in the Trampoline macOS app
+> at `/Users/rmk/projects/tools/trampoline`.
+>
+> **Changes:**
+>
+> 1. Add two new persisted properties:
+>
+>    ```swift
+>    /// Per-extension editor overrides: [extension: bundleID].
+>    /// Only extensions with explicit overrides appear here.
+>    /// Extensions not in this dict use the global editorBundleID.
+>    var editorOverrides: [String: String] = [:] {
+>        didSet { defaults.set(editorOverrides, forKey: "editorOverrides") }
+>    }
+>
+>    /// Display name cache for overridden editors: [bundleID: displayName].
+>    var editorOverrideNames: [String: String] = [:] {
+>        didSet { defaults.set(editorOverrideNames, forKey: "editorOverrideNames") }
+>    }
+>    ```
+>
+> 2. Read initial values in `init`:
+>    ```swift
+>    self.editorOverrides = defaults.dictionary(forKey: "editorOverrides")
+>        as? [String: String] ?? [:]
+>    self.editorOverrideNames = defaults.dictionary(forKey: "editorOverrideNames")
+>        as? [String: String] ?? [:]
+>    ```
+> 3. Add a resolver method:
+>    ```swift
+>    /// Resolves the editor for a given file extension.
+>    /// Extension override takes priority over the global default.
+>    func resolvedEditor(for ext: String) -> (bundleID: String, displayName: String)? {
+>        let lowered = ext.lowercased()
+>        if let overrideBundleID = editorOverrides[lowered] {
+>            let name = editorOverrideNames[overrideBundleID]
+>                ?? overrideBundleID
+>            return (overrideBundleID, name)
+>        }
+>        guard let id = editorBundleID, let name = editorDisplayName else {
+>            return nil
+>        }
+>        return (id, name)
+>    }
+>    ```
+> 4. Add bulk operations:
+>
+>    ```swift
+>    /// Sets the editor override for multiple extensions at once.
+>    func setOverride(for exts: [String], editorBundleID: String, displayName: String) {
+>        var overrides = editorOverrides
+>        var names = editorOverrideNames
+>        for ext in exts { overrides[ext.lowercased()] = editorBundleID }
+>        names[editorBundleID] = displayName
+>        editorOverrides = overrides
+>        editorOverrideNames = names
+>    }
+>
+>    /// Clears editor overrides for multiple extensions (reverts to default).
+>    func clearOverrides(for exts: [String]) {
+>        var overrides = editorOverrides
+>        for ext in exts { overrides.removeValue(forKey: ext.lowercased()) }
+>        editorOverrides = overrides
+>        // Don't clean editorOverrideNames — other exts may still use that editor
+>    }
+>    ```
+
+**Acceptance criteria:**
+
+- `resolvedEditor(for:)` returns override when set, global when not, nil when neither
+- `setOverride` and `clearOverrides` persist to UserDefaults immediately
+- All existing properties unchanged — zero regression risk
+- Build compiles with zero warnings
+
+**Status:**
+
+| Step                     | Status  | Notes |
+| ------------------------ | ------- | ----- |
+| Delegate to @code-writer | pending |       |
+| Build verification       | pending |       |
+| Delegate to @code-review | pending |       |
+| Fix review findings      | pending |       |
+| Commit                   | pending | SHA:  |
+| Plan updated             | pending |       |
+
+---
+
+### ER-02: FileForwarder — Group URLs by Resolved Editor
+
+**Estimated effort:** 20 minutes
+**Dependencies:** ER-01
+**References:** `Sources/FileForwarder.swift`, `Sources/ConfigStore.swift`
+
+**Delegation prompt for `@code-writer`:**
+
+> Read and modify `Sources/FileForwarder.swift` in the Trampoline macOS
+> app at `/Users/rmk/projects/tools/trampoline`.
+>
+> Also read `Sources/ConfigStore.swift` to see `resolvedEditor(for:)`.
+>
+> **Problem:** Currently all URLs are forwarded to a single editor.
+> With per-extension overrides, different files may route to different
+> editors.
+>
+> **Changes:**
+>
+> 1. Replace the single-editor forwarding with URL grouping:
+>
+>    ```swift
+>    func forward(urls: [URL]) -> ForwardResult {
+>        let config = ConfigStore.shared
+>
+>        // Group URLs by resolved editor
+>        var groups: [String: (editorURL: URL, urls: [URL])] = [:]
+>        var noEditorURLs: [URL] = []
+>
+>        for url in urls {
+>            let ext = url.pathExtension
+>            guard let resolved = config.resolvedEditor(for: ext) else {
+>                noEditorURLs.append(url)
+>                continue
+>            }
+>            guard let editorURL = NSWorkspace.shared.urlForApplication(
+>                withBundleIdentifier: resolved.bundleID
+>            ) else {
+>                noEditorURLs.append(url)
+>                continue
+>            }
+>            groups[resolved.bundleID, default: (editorURL, [])].urls.append(url)
+>        }
+>
+>        // Queue files with no resolved editor
+>        if !noEditorURLs.isEmpty {
+>            pendingFiles.append(contentsOf: noEditorURLs)
+>        }
+>
+>        // No editors resolved at all
+>        if groups.isEmpty {
+>            if config.editorBundleID == nil {
+>                return .noEditor
+>            } else {
+>                return .editorNotFound
+>            }
+>        }
+>
+>        // Open each group in its respective editor
+>        for (bundleID, group) in groups {
+>            let openConfig = NSWorkspace.OpenConfiguration()
+>            Task {
+>                do {
+>                    _ = try await NSWorkspace.shared.open(
+>                        group.urls,
+>                        withApplicationAt: group.editorURL,
+>                        configuration: openConfig)
+>                } catch {
+>                    NSLog("Trampoline: failed to open files with %@: %@",
+>                          bundleID, error.localizedDescription)
+>                }
+>            }
+>        }
+>
+>        return .success
+>    }
+>    ```
+>
+> 2. Keep the existing `ForwardResult` enum (no `.partial` case needed
+>    — if at least one group dispatches, return `.success`; pending
+>    files are queued silently for retry).
+> 3. `retryPending()` unchanged — it calls `forward(urls:)` which
+>    re-resolves.
+
+**Acceptance criteria:**
+
+- Files with different editor overrides route to different editors
+- Files with no override use the global default
+- Files with no editor at all queue in pendingFiles
+- Existing single-editor behavior unchanged when no overrides are set
+- Build compiles with zero warnings
+
+**Status:**
+
+| Step                     | Status  | Notes |
+| ------------------------ | ------- | ----- |
+| Delegate to @code-writer | pending |       |
+| Build verification       | pending |       |
+| Delegate to @code-review | pending |       |
+| Fix review findings      | pending |       |
+| Commit                   | pending | SHA:  |
+| Plan updated             | pending |       |
+
+---
+
+### ER-03: CLIHandler — Per-Extension Editor Commands
+
+**Estimated effort:** 30 minutes
+**Dependencies:** ER-01
+**References:** `Sources/CLIHandler.swift`, `docs/04-wireframes.md`
+
+**Delegation prompt for `@code-writer`:**
+
+> Read and modify `Sources/CLIHandler.swift` in the Trampoline macOS app
+> at `/Users/rmk/projects/tools/trampoline`.
+>
+> Also read `Sources/ConfigStore.swift` to understand `resolvedEditor(for:)`,
+> `setOverride(for:editorBundleID:displayName:)`, `clearOverrides(for:)`,
+> `editorOverrides`, and `editorOverrideNames`.
+>
+> **Changes to `handleEditor`:**
+>
+> The existing global editor commands stay unchanged. New extension-scoped
+> commands are detected by the first argument starting with `.`:
+>
+> 1. **`trampoline editor --list`** — show global default and all overrides:
+>
+>    ```
+>    DEFAULT: Zed (dev.zed.Zed)
+>
+>    OVERRIDES (6):
+>      .kt .kts .scala .sc .groovy .gvy  ->  IntelliJ IDEA
+>      .ipynb                             ->  Visual Studio Code
+>    ```
+>
+>    Group overrides by target editor for compact display.
+>    If no overrides exist, print "No per-extension overrides configured."
+>
+> 2. **`trampoline editor .ext`** — show resolved editor for an extension:
+>    ```
+>    .rs: dev.zed.Zed (Zed) [default]
+>    .kt: com.jetbrains.intellij (IntelliJ IDEA) [override]
+>    ```
+>    Show `[default]` or `[override]` to indicate source.
+> 3. **`trampoline editor .ext1,.ext2,.ext3 <editor>`** — set override
+>    for one or more extensions (comma-separated, no spaces):
+>    ```
+>    $ trampoline editor .kt,.kts,.scala intellij
+>    Editor for .kt, .kts, .scala set to: IntelliJ IDEA (com.jetbrains.intellij)
+>    ```
+>    Parse the first arg by splitting on `,`. Strip leading `.` from each.
+>    Resolve the editor using `EditorShorthands.resolve()` or raw bundle ID
+>    (same logic as existing global set). Call
+>    `ConfigStore.shared.setOverride(for:editorBundleID:displayName:)`.
+> 4. **`trampoline editor .ext1,.ext2 --clear`** — remove overrides:
+>    ```
+>    $ trampoline editor .kt,.kts --clear
+>    Cleared editor override for .kt, .kts (will use default: Zed)
+>    ```
+>    Call `ConfigStore.shared.clearOverrides(for:)`.
+>
+> **Detection logic:** In `handleEditor`, check:
+>
+> - If `args.first == "--list"` -> list overrides
+> - If `args.first` starts with `.` -> extension-scoped command
+> - Otherwise -> existing global command (unchanged)
+>
+> **Changes to `status --json`:**
+>
+> Add two fields per extension entry:
+>
+> - `"editor"`: the resolved editor bundle ID for that extension
+> - `"editorOverride"`: boolean, true if the extension has an override
+>
+> **Changes to `printUsage`:**
+>
+> Add examples:
+>
+> ```
+>     trampoline editor --list                    Show all editor overrides
+>     trampoline editor .rs                       Show editor for .rs
+>     trampoline editor .kt,.kts intellij         Override editor for extensions
+>     trampoline editor .kt --clear               Clear override, use default
+> ```
+
+**Acceptance criteria:**
+
+- `trampoline editor` (no args) still shows global default
+- `trampoline editor zed` still sets global default
+- `trampoline editor .rs` shows resolved editor with `[default]`/`[override]`
+- `trampoline editor .kt,.kts intellij` sets overrides and persists
+- `trampoline editor .kt --clear` removes override
+- `trampoline editor --list` shows grouped overrides
+- `trampoline status --json` includes `editor` and `editorOverride` fields
+- Build compiles with zero warnings
+
+**Status:**
+
+| Step                     | Status  | Notes |
+| ------------------------ | ------- | ----- |
+| Delegate to @code-writer | pending |       |
+| Build verification       | pending |       |
+| CLI smoke tests          | pending |       |
+| Delegate to @code-review | pending |       |
+| Fix review findings      | pending |       |
+| Commit                   | pending | SHA:  |
+| Plan updated             | pending |       |
+
+---
+
+### ER-04: ExtensionsTab — Editor Column and Bulk Set Editor
+
+**Estimated effort:** 45 minutes
+**Dependencies:** ER-01
+**References:** `Sources/ExtensionsTab.swift`, `Sources/EditorDetector.swift`
+
+**Delegation prompt for `@code-writer`:**
+
+> Read and modify `Sources/ExtensionsTab.swift` in the Trampoline macOS
+> app at `/Users/rmk/projects/tools/trampoline`.
+>
+> Also read:
+>
+> - `Sources/ConfigStore.swift` — `resolvedEditor(for:)`, `setOverride`,
+>   `clearOverrides`, `editorOverrides`
+> - `Sources/EditorDetector.swift` — `detectInstalledEditors() -> [EditorInfo]`
+>   where `EditorInfo` has `bundleID`, `displayName`, `icon` (NSImage 32x32)
+>
+> **Changes:**
+>
+> 1. **Add `editorName` and `hasOverride` to `ExtensionRow`:**
+>    ```swift
+>    private struct ExtensionRow: Identifiable {
+>        let ext: String
+>        var handlerName: String
+>        var status: HandlerStatus
+>        var editorName: String       // resolved editor display name
+>        var hasOverride: Bool        // true if ext has per-extension override
+>        var isSelected: Bool = false
+>        var id: String { ext }
+>    }
+>    ```
+> 2. **Add `SortKey.editor` case** and handle it in the sort helper.
+> 3. **Add "Editor" column to the header and rows:**
+>    - Header: `columnHeader("Editor", key: .editor)` between Extension
+>      and Current Handler.
+>    - Row: show `editorName`. If `hasOverride`, show in bold or with a
+>      colored dot indicator. If no override, show `"{name} (default)"`
+>      in secondary style.
+> 4. **Load editors on appear:** Add `@State private var editors: [EditorInfo] = []`
+>    and populate in `loadStatuses`. The list is needed for the picker popover.
+> 5. **Populate `editorName` and `hasOverride`** during `loadStatuses` and
+>    `performClaim` by calling `ConfigStore.shared.resolvedEditor(for:)`
+>    and checking `ConfigStore.shared.editorOverrides[ext] != nil`.
+> 6. **Add "Set Editor..." button in the footer:**
+>    - Positioned after "Selected: N" and before "Claim Selected"
+>    - Disabled when `selectedCount == 0`
+>    - On click: shows a popover or sheet with the editor picker
+> 7. **Editor picker popover:**
+>
+>    ```swift
+>    @State private var showEditorPicker = false
+>
+>    // Popover content:
+>    VStack(alignment: .leading, spacing: 8) {
+>        Text("Set editor for \(selectedCount) extension(s)")
+>            .font(.headline)
+>        Divider()
+>        ForEach(editors) { editor in
+>            Button {
+>                applyEditorToSelected(editor)
+>                showEditorPicker = false
+>            } label: {
+>                HStack {
+>                    Image(nsImage: editor.icon)
+>                        .resizable()
+>                        .frame(width: 20, height: 20)
+>                    Text(editor.displayName)
+>                }
+>            }
+>            .buttonStyle(.plain)
+>        }
+>        Divider()
+>        Button("Browse…") { browseForApp() }
+>    }
+>    .padding()
+>    .frame(width: 220)
+>    ```
+>
+>    The popover is attached to the "Set Editor..." button via
+>    `.popover(isPresented: $showEditorPicker)`.
+>
+> 8. **`applyEditorToSelected` method:**
+>    ```swift
+>    private func applyEditorToSelected(_ editor: EditorInfo) {
+>        let exts = rows
+>            .filter { $0.isSelected }
+>            .map(\.ext)
+>        guard !exts.isEmpty else { return }
+>        ConfigStore.shared.setOverride(
+>            for: exts,
+>            editorBundleID: editor.bundleID,
+>            displayName: editor.displayName)
+>        refreshEditorColumn()
+>    }
+>    ```
+> 9. **`browseForApp` method:** Open `NSOpenPanel` filtered to `.app`
+>    bundles (same pattern as GeneralTab's Browse button). Extract
+>    bundleID via `Bundle(url:)?.bundleIdentifier`, get displayName,
+>    then call `applyEditorToSelected` with a synthesized EditorInfo.
+> 10. **Add "Clear Editor" button in the footer:**
+>     - Positioned after "Set Editor..."
+>     - Disabled when no selected rows have overrides
+>     - On click: `ConfigStore.shared.clearOverrides(for: selectedExts)`
+>       then `refreshEditorColumn()`
+> 11. **`refreshEditorColumn` method:** Updates `editorName` and
+>     `hasOverride` for all rows without re-querying LS statuses
+>     (just re-reads ConfigStore).
+
+**Acceptance criteria:**
+
+- Editor column shows resolved editor for each row
+- Overridden extensions show distinct visual indicator
+- "Set Editor..." popover lists installed editors + Browse
+- Selecting an editor applies to all checked extensions
+- "Clear Editor" removes overrides from checked extensions
+- Editor column is sortable
+- Existing claim/status functionality unchanged
+- Build compiles with zero warnings
+
+**Status:**
+
+| Step                     | Status  | Notes |
+| ------------------------ | ------- | ----- |
+| Delegate to @code-writer | pending |       |
+| Build verification       | pending |       |
+| LOOK: editor column      | pending |       |
+| LOOK: Set Editor popover | pending |       |
+| LOOK: bulk assignment    | pending |       |
+| Delegate to @code-review | pending |       |
+| Fix review findings      | pending |       |
+| Commit                   | pending | SHA:  |
+| Plan updated             | pending |       |
+
+---
+
+### ER-05: GeneralTab and MenuBarManager — Override Indicators
+
+**Estimated effort:** 15 minutes
+**Dependencies:** ER-01
+**References:** `Sources/GeneralTab.swift`, `Sources/MenuBarManager.swift`
+
+**Delegation prompt for `@code-writer`:**
+
+> Read and modify `Sources/GeneralTab.swift` and
+> `Sources/MenuBarManager.swift` in the Trampoline macOS app at
+> `/Users/rmk/projects/tools/trampoline`.
+>
+> Also read `Sources/ConfigStore.swift` for the `editorOverrides` property.
+>
+> **GeneralTab changes:**
+>
+> Below the editor picker, when overrides exist, show a line:
+>
+> ```
+> N extension(s) use a different editor (see Extensions tab)
+> ```
+>
+> Use `.caption` font, `.secondary` style. Only show when
+> `!ConfigStore.shared.editorOverrides.isEmpty`.
+>
+> **MenuBarManager changes:**
+>
+> Update the "Editor: Zed" menu label to include override count:
+>
+> ```
+> Editor: Zed (+3 overrides)
+> ```
+>
+> Only show the suffix when overrides exist. Read count from
+> `ConfigStore.shared.editorOverrides.count`. Note: the count is
+> the number of _extensions_ with overrides, not the number of
+> distinct override editors.
+
+**Acceptance criteria:**
+
+- GeneralTab shows override count when overrides exist, hidden when empty
+- MenuBarManager shows "+N overrides" suffix when overrides exist
+- Build compiles with zero warnings
+
+**Status:**
+
+| Step                     | Status  | Notes |
+| ------------------------ | ------- | ----- |
+| Delegate to @code-writer | pending |       |
+| Build verification       | pending |       |
+| Delegate to @code-review | pending |       |
+| Fix review findings      | pending |       |
+| Commit                   | pending | SHA:  |
+| Plan updated             | pending |       |
+
+---
+
+### ER-06: README Update and Final Review
+
+**Estimated effort:** 30 minutes
+**Dependencies:** ER-01 through ER-05
+**References:** `README.md`
+
+**Steps:**
+
+1. **Delegate to `@docs-writer`:** Update README.md to document
+   per-extension editor routing:
+   - New section: "Per-Extension Editor Routing"
+   - CLI examples: `trampoline editor .kt intellij`,
+     `trampoline editor --list`, `trampoline editor .kt --clear`
+   - GUI: describe the Extensions tab "Set Editor..." workflow
+   - Note that the global default is the fallback
+
+2. **Delegate to `@code-review`:** Full review of all changed files
+   (ConfigStore, FileForwarder, CLIHandler, ExtensionsTab, GeneralTab,
+   MenuBarManager). Review criteria:
+   - Resolver correctness (override > global > nil)
+   - FileForwarder grouping correctness
+   - CLI argument parsing edge cases
+   - GUI state management (popover, selection, refresh)
+   - DRY: no resolver logic outside ConfigStore
+   - No force-unwrapping
+   - Backward compatibility (zero overrides = identical behavior)
+
+3. Fix any review findings via `@code-writer`.
+
+4. DRY verification checklist.
+
+5. CLI smoke tests:
+
+   ```
+   trampoline editor                     # show global
+   trampoline editor .rs                 # show resolved (default)
+   trampoline editor .kt intellij        # set override
+   trampoline editor .kt                 # show resolved (override)
+   trampoline editor --list              # show all overrides
+   trampoline editor .kt --clear         # clear override
+   trampoline status --json | head -5    # verify editor field
+   ```
+
+6. Commit:
+
+   ```
+   feat(core): per-extension editor routing
+
+   - ConfigStore: editorOverrides dict with resolver, bulk set/clear
+   - FileForwarder: groups URLs by resolved editor, one
+     NSWorkspace.open per app
+   - CLIHandler: trampoline editor .ext syntax, --list, --clear,
+     comma-separated bulk set, status --json editor fields
+   - ExtensionsTab: editor column, Set Editor popover with Browse,
+     Clear Editor, bulk assignment via multi-select
+   - GeneralTab: override count indicator
+   - MenuBarManager: +N overrides in menu label
+   ```
+
+**Status:**
+
+| Step                     | Status  | Notes |
+| ------------------------ | ------- | ----- |
+| Delegate to @docs-writer | pending |       |
+| Delegate to @code-review | pending |       |
+| Fix review findings      | pending |       |
+| DRY verification         | pending |       |
+| CLI smoke tests          | pending |       |
+| Commit                   | pending | SHA:  |
+| Plan updated             | pending |       |
 
 ---
 

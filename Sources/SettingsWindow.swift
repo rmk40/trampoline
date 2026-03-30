@@ -14,37 +14,42 @@ enum SettingsWindow {
     // MARK: - Show
 
     static func show() {
-        // Activate BEFORE showing the window — an .accessory app can't
-        // own key window focus, so we must switch to .regular first.
-        NSApp.setActivationPolicy(.regular)
-        NSApp.activate()
+        if shared == nil {
+            let contentView = SettingsContentView()
+            let hostingController = NSHostingController(rootView: contentView)
 
-        if let window = shared {
-            window.makeKeyAndOrderFront(nil)
-            return
+            let window = NSWindow(contentViewController: hostingController)
+            window.title = "Trampoline"
+            window.styleMask = [.titled, .closable, .miniaturizable]
+            window.setContentSize(NSSize(width: 640, height: 480))
+            window.minSize = NSSize(width: 540, height: 400)
+            window.maxSize = NSSize(width: 800, height: 600)
+            window.center()
+
+            let delegate = SettingsWindowDelegate()
+            window.delegate = delegate
+            objc_setAssociatedObject(
+                window, &SettingsWindowDelegate.associatedKey,
+                delegate, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+
+            shared = window
         }
 
-        let contentView = SettingsContentView()
-        let hostingController = NSHostingController(rootView: contentView)
+        guard let window = shared else { return }
 
-        let window = NSWindow(contentViewController: hostingController)
-        window.title = "Trampoline"
-        window.styleMask = [.titled, .closable, .miniaturizable]
-        window.setContentSize(NSSize(width: 640, height: 480))
-        window.minSize = NSSize(width: 540, height: 400)
-        window.maxSize = NSSize(width: 800, height: 600)
-        window.center()
-
-        let delegate = SettingsWindowDelegate()
-        window.delegate = delegate
-        // Prevent delegate from being deallocated while the window is alive.
-        // Stored as an associated object on the window itself.
-        objc_setAssociatedObject(
-            window, &SettingsWindowDelegate.associatedKey,
-            delegate, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
-
-        shared = window
+        // For a menu bar agent (.accessory), the activation sequence must be:
+        // 1. Switch to .regular so the app CAN receive focus
+        // 2. Show the window with orderFrontRegardless (works even when
+        //    the app isn't yet the active app — makeKeyAndOrderFront
+        //    silently fails in that case)
+        // 3. Make it the key window
+        // 4. Activate the app (bring it to front)
+        // The delay ensures macOS has finished the activation policy
+        // transition before we request focus.
+        NSApp.setActivationPolicy(.regular)
+        window.orderFrontRegardless()
         window.makeKeyAndOrderFront(nil)
+        NSApp.activate()
     }
 
     static func showWithWarning(_ message: String) {
@@ -58,6 +63,12 @@ enum SettingsWindow {
 private class SettingsWindowDelegate: NSObject, NSWindowDelegate {
 
     static var associatedKey: UInt8 = 0
+
+    func windowDidBecomeKey(_ notification: Notification) {
+        // Re-ensure .regular policy when the window gains focus.
+        // Handles edge cases where macOS reverts the policy.
+        NSApp.setActivationPolicy(.regular)
+    }
 
     func windowWillClose(_ notification: Notification) {
         SettingsWindow.shared = nil
