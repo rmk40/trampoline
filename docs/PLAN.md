@@ -2,7 +2,7 @@
 
 **Version:** 1.4
 **Date:** 2026-03-30
-**Status:** In progress — Phase 5 (per-extension editor routing)
+**Status:** Complete (Phase 5 per-extension editor routing)
 **Branch:** `main`
 **Source:** Design specification (`docs/00-overview.md` through `docs/06-phases.md`)
 **Estimated total effort:** 12-18 hours (6-9 sessions)
@@ -2166,15 +2166,15 @@ ER-06 (README + final review)
 
 **Status:**
 
-| Step                     | Status  | Notes |
-| ------------------------ | ------- | ----- |
-| Delegate to @code-writer | pending |       |
-| Build verification       | pending |       |
-| CLI smoke tests          | pending |       |
-| Delegate to @code-review | pending |       |
-| Fix review findings      | pending |       |
-| Commit                   | pending | SHA:  |
-| Plan updated             | pending |       |
+| Step                     | Status | Notes                               |
+| ------------------------ | ------ | ----------------------------------- |
+| Delegate to @code-writer | done   |                                     |
+| Build verification       | done   |                                     |
+| CLI smoke tests          | done   | all subcommands verified            |
+| Delegate to @code-review | done   | 0 blockers, 3 issues                |
+| Fix review findings      | done   | empty exts, DRY resolver, JSON bool |
+| Commit                   | done   | 343e882                             |
+| Plan updated             | done   |                                     |
 
 ---
 
@@ -2300,17 +2300,17 @@ ER-06 (README + final review)
 
 **Status:**
 
-| Step                     | Status  | Notes |
-| ------------------------ | ------- | ----- |
-| Delegate to @code-writer | pending |       |
-| Build verification       | pending |       |
-| LOOK: editor column      | pending |       |
-| LOOK: Set Editor popover | pending |       |
-| LOOK: bulk assignment    | pending |       |
-| Delegate to @code-review | pending |       |
-| Fix review findings      | pending |       |
-| Commit                   | pending | SHA:  |
-| Plan updated             | pending |       |
+| Step                     | Status | Notes                                  |
+| ------------------------ | ------ | -------------------------------------- |
+| Delegate to @code-writer | done   |                                        |
+| Build verification       | done   |                                        |
+| LOOK: editor column      | done   | bold override, secondary default       |
+| LOOK: Set Editor popover | done   | icons, Browse, popover dismiss         |
+| LOOK: bulk assignment    | done   | multi-select + apply                   |
+| Delegate to @code-review | done   | 0 blockers, 3 issues                   |
+| Fix review findings      | done   | runModal, bundle ID feedback, checkbox |
+| Commit                   | done   | b7ddd38                                |
+| Plan updated             | done   |                                        |
 
 ---
 
@@ -2360,14 +2360,14 @@ ER-06 (README + final review)
 
 **Status:**
 
-| Step                     | Status  | Notes |
-| ------------------------ | ------- | ----- |
-| Delegate to @code-writer | pending |       |
-| Build verification       | pending |       |
-| Delegate to @code-review | pending |       |
-| Fix review findings      | pending |       |
-| Commit                   | pending | SHA:  |
-| Plan updated             | pending |       |
+| Step                     | Status | Notes                              |
+| ------------------------ | ------ | ---------------------------------- |
+| Delegate to @code-writer | done   |                                    |
+| Build verification       | done   |                                    |
+| Delegate to @code-review | done   | 0 blockers, 2 issues               |
+| Fix review findings      | done   | lazy menu rebuild, popover dismiss |
+| Commit                   | done   | 6852989                            |
+| Plan updated             | done   |                                    |
 
 ---
 
@@ -2432,15 +2432,15 @@ ER-06 (README + final review)
 
 **Status:**
 
-| Step                     | Status  | Notes |
-| ------------------------ | ------- | ----- |
-| Delegate to @docs-writer | pending |       |
-| Delegate to @code-review | pending |       |
-| Fix review findings      | pending |       |
-| DRY verification         | pending |       |
-| CLI smoke tests          | pending |       |
-| Commit                   | pending | SHA:  |
-| Plan updated             | pending |       |
+| Step                     | Status  | Notes                                 |
+| ------------------------ | ------- | ------------------------------------- |
+| Delegate to @docs-writer | done    | README per-extension routing section  |
+| Delegate to @code-review | done    | 0 blockers, 1 issue, 3 nits           |
+| Fix review findings      | done    | defensive .lowercased() on CLI lookup |
+| DRY verification         | done    | all 4 checks pass                     |
+| CLI smoke tests          | done    | all subcommands verified end-to-end   |
+| Commit                   | done    | 3adb3c9                               |
+| Plan updated             | pending |                                       |
 
 ---
 
