@@ -28,6 +28,10 @@ final class ConfigStore {
         self.showMenuBarIcon   = defaults.bool(forKey: "showMenuBarIcon")
         self.firstRunComplete  = defaults.bool(forKey: "firstRunComplete")
         self.claimedExtensions = defaults.stringArray(forKey: "claimedExtensions") ?? []
+        self.editorOverrides = defaults.dictionary(forKey: "editorOverrides")
+            as? [String: String] ?? [:]
+        self.editorOverrideNames = defaults.dictionary(forKey: "editorOverrideNames")
+            as? [String: String] ?? [:]
     }
 
     // MARK: - Persisted properties
@@ -52,9 +56,64 @@ final class ConfigStore {
         didSet { defaults.set(claimedExtensions, forKey: "claimedExtensions") }
     }
 
+    /// Per-extension editor overrides.
+    /// Keys are lowercased file extensions without dot (e.g., "py", "kt").
+    /// Values are editor bundle IDs.
+    /// Only extensions with explicit overrides appear here.
+    /// Extensions not in this dict use the global editorBundleID.
+    var editorOverrides: [String: String] = [:] {
+        didSet { defaults.set(editorOverrides, forKey: "editorOverrides") }
+    }
+
+    /// Display name cache for overridden editors: [bundleID: displayName].
+    var editorOverrideNames: [String: String] = [:] {
+        didSet { defaults.set(editorOverrideNames, forKey: "editorOverrideNames") }
+    }
+
     // MARK: - Transient state (not persisted to UserDefaults)
 
     /// Warning message shown in GeneralTab (e.g. "Choose an editor…").
     /// Stored here so SwiftUI can observe changes via @Observable.
     var warningMessage: String?
+
+    // MARK: - Editor resolution
+
+    /// Resolves the editor for a given file extension.
+    /// Extension override takes priority over the global default.
+    func resolvedEditor(for ext: String) -> (bundleID: String, displayName: String)? {
+        let lowered = ext.lowercased()
+        if let overrideBundleID = editorOverrides[lowered] {
+            let name = editorOverrideNames[overrideBundleID]
+                ?? overrideBundleID
+            return (overrideBundleID, name)
+        }
+        guard let id = editorBundleID, let name = editorDisplayName else {
+            return nil
+        }
+        return (id, name)
+    }
+
+    /// Sets the editor override for multiple extensions at once.
+    func setOverride(for exts: [String], editorBundleID: String, displayName: String) {
+        var overrides = editorOverrides
+        var names = editorOverrideNames
+        for ext in exts { overrides[ext.lowercased()] = editorBundleID }
+        names[editorBundleID] = displayName
+        editorOverrides = overrides
+        editorOverrideNames = names
+    }
+
+    /// Clears editor overrides for multiple extensions (reverts to default).
+    func clearOverrides(for exts: [String]) {
+        var overrides = editorOverrides
+        for ext in exts { overrides.removeValue(forKey: ext.lowercased()) }
+        editorOverrides = overrides
+        // Prune names for editors no longer referenced by any override
+        let usedBundleIDs = Set(editorOverrides.values)
+        var names = editorOverrideNames
+        for key in names.keys where !usedBundleIDs.contains(key) {
+            names.removeValue(forKey: key)
+        }
+        editorOverrideNames = names
+    }
 }

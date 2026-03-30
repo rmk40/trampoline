@@ -46,12 +46,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             SettingsWindow.showWithWarning(
                 "Choose an editor to open your files")
         case .editorNotFound:
-            let name = ConfigStore.shared.editorDisplayName
-                ?? ConfigStore.shared.editorBundleID ?? "Editor"
+            let overrideCount = ConfigStore.shared.editorOverrides.count
+            let message: String
+            if overrideCount > 0 {
+                message = "One or more configured editors could not be found. Check your settings."
+            } else {
+                let name = ConfigStore.shared.editorDisplayName
+                    ?? ConfigStore.shared.editorBundleID ?? "Editor"
+                message = "\(name) is no longer installed. Choose a different editor."
+            }
             NSLog("Trampoline: editor not found — %d file(s) queued",
                   urls.count)
-            SettingsWindow.showWithWarning(
-                "\(name) is no longer installed. Choose a different editor.")
+            SettingsWindow.showWithWarning(message)
         }
     }
 

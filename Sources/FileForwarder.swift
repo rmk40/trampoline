@@ -22,37 +22,66 @@ final class FileForwarder {
 
     // MARK: - Forward
 
-    /// Forwards the given file URLs to the configured editor.
-    /// On `.noEditor` or `.editorNotFound`, appends URLs to `pendingFiles`.
+    /// Forwards the given file URLs to their resolved editors.
+    /// Per-extension overrides may route different files to different editors.
+    /// URLs with no resolved editor are appended to `pendingFiles`.
     func forward(urls: [URL]) -> ForwardResult {
-        guard let bundleID = ConfigStore.shared.editorBundleID else {
-            pendingFiles.append(contentsOf: urls)
-            return .noEditor
-        }
+        let config = ConfigStore.shared
 
-        guard let editorURL = NSWorkspace.shared.urlForApplication(
-            withBundleIdentifier: bundleID
-        ) else {
-            pendingFiles.append(contentsOf: urls)
-            return .editorNotFound
-        }
+        // Group URLs by resolved editor
+        var groups: [String: (editorURL: URL, urls: [URL])] = [:]
+        var noEditorURLs: [URL] = []
 
-        let config = NSWorkspace.OpenConfiguration()
-
-        // NSWorkspace.open is async — fire in a Task so we don't block the
-        // main thread. Errors are logged; the synchronous return value reflects
-        // whether we were *able* to attempt the open (editor resolved).
-        Task {
-            do {
-                _ = try await NSWorkspace.shared.open(
-                    urls,
-                    withApplicationAt: editorURL,
-                    configuration: config
-                )
-            } catch {
-                NSLog("Trampoline: failed to open files with %@: %@",
-                      bundleID, error.localizedDescription)
+        for url in urls {
+            let ext = url.pathExtension
+            guard let resolved = config.resolvedEditor(for: ext) else {
+                noEditorURLs.append(url)
+                continue
             }
+            guard let editorURL = NSWorkspace.shared.urlForApplication(
+                withBundleIdentifier: resolved.bundleID
+            ) else {
+                noEditorURLs.append(url)
+                continue
+            }
+            var group = groups[resolved.bundleID] ?? (editorURL, [])
+            group.urls.append(url)
+            groups[resolved.bundleID] = group
+        }
+
+        // Queue files with no resolved editor
+        if !noEditorURLs.isEmpty {
+            pendingFiles.append(contentsOf: noEditorURLs)
+        }
+
+        // No editors resolved at all
+        if groups.isEmpty {
+            if config.editorBundleID == nil {
+                return .noEditor
+            } else {
+                return .editorNotFound
+            }
+        }
+
+        // Open each group in its respective editor
+        for (bundleID, group) in groups {
+            let openConfig = NSWorkspace.OpenConfiguration()
+            Task {
+                do {
+                    _ = try await NSWorkspace.shared.open(
+                        group.urls,
+                        withApplicationAt: group.editorURL,
+                        configuration: openConfig)
+                } catch {
+                    NSLog("Trampoline: failed to open files with %@: %@",
+                          bundleID, error.localizedDescription)
+                }
+            }
+        }
+
+        // If some files had no editor, surface it to the caller
+        if !noEditorURLs.isEmpty {
+            return config.editorBundleID == nil ? .noEditor : .editorNotFound
         }
 
         return .success
