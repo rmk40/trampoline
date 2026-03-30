@@ -1,10 +1,10 @@
 # {Project Name} Implementation Plan
 
-**Version:** 1.0
+**Version:** 0.1
 **Date:** {YYYY-MM-DD}
 **Status:** Planning
 **Branch:** `main`
-**Source:** {Link to design docs, PRD, spec, or requirements}
+**Source:** {Link to primary design doc or spec — enumerate individual docs in Authoritative References below}
 **Estimated total effort:** {range, e.g. "8-12 hours (4-6 sessions)"}
 **Dependencies:** {build tools, runtimes, SDKs}
 
@@ -26,10 +26,10 @@ For **every task**, follow this exact sequence:
 
 ```
 1. DELEGATE  ->  @code-writer (with detailed prompt from this plan)
-2. BUILD     ->  Verify: {build command} passes with zero warnings
+2. BUILD     ->  Verify: {build command, e.g. "make clean && make all"} passes with zero warnings
 3. TEST      ->  Smoke test the relevant functionality
 4. LOOK      ->  (if UI changed) Visual verification
-5. REVIEW    ->  @code-review (with review criteria)
+5. REVIEW    ->  @code-review (with review criteria from the task definition)
 6. FIX       ->  @code-writer (with specific review findings)
 7. RE-REVIEW ->  (if fixes were substantial: >3 files or logic changes)
 8. COMMIT    ->  Only after zero blockers from review
@@ -99,15 +99,17 @@ This document is a living artifact. Keep it accurate:
    - Design deviations from the original spec
 3. **Decision log** — if a task reveals a design decision not already
    recorded, add a row to the Decision Log **before** implementing.
+   **Record decisions BEFORE implementing, not after.** Post-hoc
+   decisions are rationalizations, not decisions.
 4. **Plan version** — bump the Version field when making structural
-   changes to the plan itself.
+   changes to the plan itself. Bump to 1.0 when execution begins.
 
 ---
 
 ## Decision Log
 
 Record every non-obvious design decision. If it's not in the spec, it
-goes here before implementation.
+goes here **before** implementation — never after.
 
 | #   | Topic | Decision | Rationale |
 | --- | ----- | -------- | --------- |
@@ -123,15 +125,20 @@ check in the verification checklist.
 **Invariant pattern:** "{Thing X} only lives in {File Y}. No other file
 should {do Z}."
 
-| #   | Invariant                       | Canonical location | Grep check                                         |
-| --- | ------------------------------- | ------------------ | -------------------------------------------------- |
-| 1   | {e.g., "All database queries"}  | {e.g., "src/db/"}  | `grep -rn "{pattern}" src/ \| grep -v {canonical}` |
-| 2   | {e.g., "All API keys/secrets"}  | {e.g., ".env"}     | `grep -rn "API_KEY\|SECRET" src/ \| grep -v .env`  |
-| 3   | No force-unwrapping             | Everywhere         | `grep -rn 'as!' src/*.{ext}`                       |
-| 4   | No TODO/FIXME in committed code | Everywhere         | `grep -rn 'TODO\|FIXME\|HACK\|XXX' src/`           |
+| #   | Invariant                                             | Canonical location | Grep check                                                |
+| --- | ----------------------------------------------------- | ------------------ | --------------------------------------------------------- |
+| 1   | {e.g., "All database queries"}                        | {e.g., "src/db/"}  | `grep -rn "{pattern}" src/ \| grep -v {canonical}`        |
+| 2   | {e.g., "All API keys/secrets"}                        | {e.g., ".env"}     | `grep -rn "API_KEY\|SECRET" src/ \| grep -v .env`         |
+| 3   | {e.g., "No unsafe casts/unwraps"}                     | {everywhere}       | `{language-specific grep, e.g. grep -rn 'as!' for Swift}` |
+| 4   | No TODO/FIXME in committed code (recommended default) | Everywhere         | `grep -rn 'TODO\|FIXME\|HACK\|XXX' src/`                  |
+
+Replace the examples above with your project's actual invariants. Keep
+invariant 4 (TODO/FIXME) as a default — it prevents accidental
+placeholder leakage into commits. Add project-specific invariants as
+they emerge during implementation.
 
 **Run the full checklist** at the midpoint of the project and before
-the final commit. Add project-specific invariants as they emerge.
+the final commit.
 
 ---
 
@@ -140,6 +147,7 @@ the final commit. Add project-specific invariants as they emerge.
 ```bash
 # Run after midpoint task and before final commit.
 # Every check should produce zero output (violations).
+# Mirror the invariants table above — one check per invariant.
 
 # Invariant 1: {description}
 {grep command}
@@ -147,12 +155,35 @@ the final commit. Add project-specific invariants as they emerge.
 # Invariant 2: {description}
 {grep command}
 
-# Invariant 3: No force-unwrapping
+# Invariant 3: {description}
 {grep command}
 
-# Invariant 4: No TODO/FIXME
+# Invariant 4: No TODO/FIXME (recommended default — keep this)
 grep -rn 'TODO\|FIXME\|HACK\|XXX' src/
 ```
+
+---
+
+## Execution Sequence
+
+Bird's-eye view of all phases and tasks. Use this to orient before
+diving into individual task definitions. Update as tasks complete.
+
+```
+Phase 1: {Name}
+  {TASK-01} -> build -> review -> commit
+  {TASK-02} -> build -> review -> commit
+  {TASK-03} -> build -> review -> commit
+
+Phase 2: {Name}
+  {TASK-04} -> build -> review -> commit
+  {TASK-05} -> build -> LOOK -> review -> commit
+  {TASK-06} -> build -> LOOK -> review -> commit
+```
+
+Use a short prefix + sequential number for task IDs (e.g., `WEB-01`,
+`API-01`, `FE-01`). Use different prefixes for different phases if
+it helps distinguish the work.
 
 ---
 
@@ -171,6 +202,7 @@ produces working, tested, committed code.
 
 **Estimated effort:** {minutes/hours}
 **Dependencies:** {other task IDs, or "None"}
+**References:** {design doc paths and specific sections, e.g., "docs/architecture.md (component X), docs/flows.md (F-02)"}
 **Files:** {files created or modified}
 
 **Delegation prompt for `@code-writer`:**
@@ -203,23 +235,24 @@ produces working, tested, committed code.
 
 - {Criterion 1}
 - {Criterion 2}
-- Build compiles with zero warnings
+- {e.g., "Build compiles with zero warnings"}
 
 **Status:**
 
-| Step                     | Status  | Notes |
-| ------------------------ | ------- | ----- |
-| Delegate to @code-writer | pending |       |
-| Build verification       | pending |       |
-| Smoke test               | pending |       |
-| Delegate to @code-review | pending |       |
-| Fix review findings      | pending |       |
-| Commit                   | pending | SHA:  |
-| Plan updated             | pending |       |
+| Step                        | Status  | Notes |
+| --------------------------- | ------- | ----- |
+| Delegate to @code-writer    | pending |       |
+| Build verification          | pending |       |
+| Smoke test                  | pending |       |
+| Visual verification (if UI) | pending |       |
+| Delegate to @code-review    | pending |       |
+| Fix review findings         | pending |       |
+| Commit                      | pending | SHA:  |
+| Plan updated                | pending |       |
 
 ---
 
-{Repeat ### TASK-ID blocks for each task}
+<!-- Repeat ### TASK-ID blocks for each task in this phase -->
 
 ---
 
@@ -227,20 +260,45 @@ produces working, tested, committed code.
 
 **Goal:** {What's true when this phase is done}
 
-{Tasks...}
+<!-- Tasks... -->
+
+---
+
+## Adding Post-Ship Fix Phases
+
+When testing after initial completion reveals architectural issues,
+**don't patch existing tasks**. Instead, add a new phase:
+
+1. **Background** — root cause analysis explaining what went wrong
+   and why
+2. **Decision Log Additions** — new rows for the design decisions
+   needed to fix the issue
+3. **FIX-NN task IDs** — new tasks following the same task template
+   (delegation prompt, review criteria, acceptance criteria, status
+   table)
+4. **Final verification task** — DRY checklist, smoke tests, full
+   code review of changed files
+
+This pattern was essential in the Trampoline project: Phase 4 (claim
+architecture fix) was added after Phase 3 was "complete" when
+end-to-end testing revealed that the claim API triggered 85 macOS
+dialogs. The structured fix phase prevented ad-hoc patching and
+maintained review discipline.
 
 ---
 
 ## Validation Protocol
 
-**Standard validation sequence (per task):**
+The per-task validation sequence is defined in the
+[Orchestrator Workflow](#orchestrator-workflow) above (steps 1-9).
+This section provides a quick reference:
 
-1. **Build** — `{build command}` (must pass with zero warnings)
-2. **Lint** — {lint description, or "included in build step"}
+1. **Build** — must pass with zero warnings
+2. **Lint** — included in build or run separately
 3. **Smoke test** — run the relevant functionality manually
 4. **LOOK checkpoint** (if UI changed) — visual verification
-5. **Code review** — `@code-review` delegation with criteria from the
-   task definition. Fix-review loop until zero blockers.
+5. **Code review** — `@code-review` with criteria from the task.
+   Fix-review loop until zero blockers.
 6. **Commit** — only after steps 1-5 pass
 7. **Plan update** — update status tables immediately after commit
 
@@ -264,8 +322,8 @@ produces working, tested, committed code.
 **Rules:**
 
 - Commit at the end of every completed task (after validation passes)
-- Commit at natural sub-task checkpoints within larger tasks to avoid
-  losing work
+- Commit at natural sub-task checkpoints within larger tasks
+  (especially for tasks estimated at >2 hours) to avoid losing work
 - Never commit code that doesn't build
 - Never commit before code review passes
 - Record the short SHA in the task's status table Notes column
@@ -315,7 +373,7 @@ Each task commits independently. To roll back:
 
 ## Post-Completion Checklist
 
-- [ ] `{build command}` builds cleanly on a fresh checkout
+- [ ] `{build command, e.g. "make clean && make all"}` builds cleanly on a fresh checkout
 - [ ] All smoke tests pass
 - [ ] DRY verification checklist passes (all invariants hold)
 - [ ] No TODO/FIXME comments in source
