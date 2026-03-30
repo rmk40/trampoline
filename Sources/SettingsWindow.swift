@@ -74,7 +74,7 @@ private struct SettingsContentView: View {
                     Label("General", systemImage: "gearshape")
                 }
 
-            Text("Extensions")
+            ExtensionsTab()
                 .tabItem {
                     Label("Extensions", systemImage: "doc.plaintext")
                 }

@@ -827,17 +827,17 @@ Phase 3: Polish (3 tasks, ~3 hours)
 
 **Status:**
 
-| Step                     | Status  | Notes |
-| ------------------------ | ------- | ----- |
-| Delegate to @code-writer | pending |       |
-| Build verification       | pending |       |
-| LOOK: window opens       | pending |       |
-| LOOK: picker + icons     | pending |       |
-| LOOK: first-run banner   | pending |       |
-| Delegate to @code-review | pending |       |
-| Fix findings             | pending |       |
-| Commit                   | pending | SHA:  |
-| Plan updated             | pending |       |
+| Step                     | Status | Notes                                           |
+| ------------------------ | ------ | ----------------------------------------------- |
+| Delegate to @code-writer | done   |                                                 |
+| Build verification       | done   |                                                 |
+| LOOK: window opens       | done   | window appears on launch                        |
+| LOOK: picker + icons     | done   | shows installed editors with icons              |
+| LOOK: first-run banner   | done   | banner shows contextually                       |
+| Delegate to @code-review | done   | 1 blocker, 5 issues, 4 nits                     |
+| Fix findings             | done   | reactive warning, @Bindable, Browse, .accessory |
+| Commit                   | done   | da8f37b                                         |
+| Plan updated             | done   |                                                 |
 
 ---
 
