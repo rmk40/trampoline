@@ -2,7 +2,7 @@
 
 **Version:** 1.3
 **Date:** 2026-03-30
-**Status:** In progress — Phase 4 (claim architecture fix)
+**Status:** Complete (Phase 4 claim fix applied)
 **Branch:** `main`
 **Source:** Design specification (`docs/00-overview.md` through `docs/06-phases.md`)
 **Estimated total effort:** 12-18 hours (6-9 sessions)
@@ -1519,12 +1519,14 @@ differently:
 
 **Status:**
 
-| Step                     | Status  | Notes |
-| ------------------------ | ------- | ----- |
-| Delegate to @code-writer | pending |       |
-| Build verification       | pending |       |
-| Commit                   | pending | SHA:  |
-| Plan updated             | pending |       |
+| Step                     | Status | Notes                                      |
+| ------------------------ | ------ | ------------------------------------------ |
+| Delegate to @code-writer | done   |                                            |
+| Build verification       | done   |                                            |
+| Delegate to @code-review | done   | reviewed with FIX-02, 0 blockers, 2 issues |
+| Fix review findings      | done   | plist comment, release filter, binding     |
+| Commit                   | done   | 2f6eaf2 (combined with FIX-02 through 05)  |
+| Plan updated             | done   |                                            |
 
 ---
 
@@ -1594,13 +1596,14 @@ differently:
 
 **Status:**
 
-| Step                     | Status  | Notes |
-| ------------------------ | ------- | ----- |
-| Delegate to @code-writer | pending |       |
-| Build verification       | pending |       |
-| CLI smoke test           | pending |       |
-| Commit                   | pending | SHA:  |
-| Plan updated             | pending |       |
+| Step                     | Status | Notes                           |
+| ------------------------ | ------ | ------------------------------- |
+| Delegate to @code-writer | done   |                                 |
+| Build verification       | done   |                                 |
+| CLI smoke test           | done   | 60 registered, 25 claimed shown |
+| Delegate to @code-review | done   | reviewed with FIX-01            |
+| Commit                   | done   | 2f6eaf2                         |
+| Plan updated             | done   |                                 |
 
 ---
 
@@ -1647,12 +1650,14 @@ differently:
 
 **Status:**
 
-| Step                     | Status  | Notes |
-| ------------------------ | ------- | ----- |
-| Delegate to @code-writer | pending |       |
-| Build verification       | pending |       |
-| Commit                   | pending | SHA:  |
-| Plan updated             | pending |       |
+| Step                     | Status | Notes                          |
+| ------------------------ | ------ | ------------------------------ |
+| Delegate to @code-writer | done   |                                |
+| Build verification       | done   |                                |
+| Delegate to @code-review | done   | reviewed with FIX-04, 3 issues |
+| Fix review findings      | done   |                                |
+| Commit                   | done   | 2f6eaf2                        |
+| Plan updated             | done   |                                |
 
 ---
 
@@ -1700,12 +1705,14 @@ differently:
 
 **Status:**
 
-| Step                     | Status  | Notes |
-| ------------------------ | ------- | ----- |
-| Delegate to @code-writer | pending |       |
-| Build verification       | pending |       |
-| Commit                   | pending | SHA:  |
-| Plan updated             | pending |       |
+| Step                     | Status | Notes                            |
+| ------------------------ | ------ | -------------------------------- |
+| Delegate to @code-writer | done   |                                  |
+| Build verification       | done   |                                  |
+| Delegate to @code-review | done   | reviewed with FIX-03, 3 issues   |
+| Fix review findings      | done   | binding guard, Claim All disable |
+| Commit                   | done   | 2f6eaf2                          |
+| Plan updated             | done   |                                  |
 
 ---
 
@@ -1757,12 +1764,12 @@ differently:
 
 **Status:**
 
-| Step                     | Status  | Notes |
-| ------------------------ | ------- | ----- |
-| Delegate to @code-writer | pending |       |
-| plutil validation        | pending |       |
-| Commit                   | pending | SHA:  |
-| Plan updated             | pending |       |
+| Step                     | Status | Notes   |
+| ------------------------ | ------ | ------- |
+| Delegate to @code-writer | done   |         |
+| plutil validation        | done   | OK      |
+| Commit                   | done   | 2f6eaf2 |
+| Plan updated             | done   |         |
 
 ---
 
@@ -1800,15 +1807,15 @@ differently:
 
 **Status:**
 
-| Step                     | Status  | Notes |
-| ------------------------ | ------- | ----- |
-| Build verification       | pending |       |
-| DRY verification         | pending |       |
-| CLI smoke tests          | pending |       |
-| Delegate to @code-review | pending |       |
-| Fix review findings      | pending |       |
-| Commit                   | pending | SHA:  |
-| Plan updated             | pending |       |
+| Step                     | Status | Notes                                                             |
+| ------------------------ | ------ | ----------------------------------------------------------------- |
+| Build verification       | done   |                                                                   |
+| DRY verification         | done   | all 4 checks pass                                                 |
+| CLI smoke tests          | done   | 60 registered, 25 claimed, JSON verified                          |
+| Delegate to @code-review | done   | FIX-01/02: 0 blockers 2 issues; FIX-03/04/05: 0 blockers 3 issues |
+| Fix review findings      | done   | plist comment, release filter, binding guard                      |
+| Commit                   | done   | 2f6eaf2                                                           |
+| Plan updated             | done   |                                                                   |
 
 ---
 
