@@ -1957,14 +1957,14 @@ ER-06 (README + final review)
 
 **Status:**
 
-| Step                     | Status  | Notes |
-| ------------------------ | ------- | ----- |
-| Delegate to @code-writer | pending |       |
-| Build verification       | pending |       |
-| Delegate to @code-review | pending |       |
-| Fix review findings      | pending |       |
-| Commit                   | pending | SHA:  |
-| Plan updated             | pending |       |
+| Step                     | Status | Notes                                    |
+| ------------------------ | ------ | ---------------------------------------- |
+| Delegate to @code-writer | done   |                                          |
+| Build verification       | done   |                                          |
+| Delegate to @code-review | done   | reviewed with ER-02; 1 blocker, 3 issues |
+| Fix review findings      | done   | partial success, error msg, name pruning |
+| Commit                   | done   | b4412ad (combined with ER-02)            |
+| Plan updated             | done   |                                          |
 
 ---
 
@@ -2062,14 +2062,14 @@ ER-06 (README + final review)
 
 **Status:**
 
-| Step                     | Status  | Notes |
-| ------------------------ | ------- | ----- |
-| Delegate to @code-writer | pending |       |
-| Build verification       | pending |       |
-| Delegate to @code-review | pending |       |
-| Fix review findings      | pending |       |
-| Commit                   | pending | SHA:  |
-| Plan updated             | pending |       |
+| Step                     | Status  | Notes                      |
+| ------------------------ | ------- | -------------------------- |
+| Delegate to @code-writer | pending |                            |
+| Build verification       | done    |                            |
+| Delegate to @code-review | done    | reviewed with ER-01        |
+| Fix review findings      | done    | combined in ER-01 fix pass |
+| Commit                   | done    | b4412ad                    |
+| Plan updated             | done    |                            |
 
 ---
 

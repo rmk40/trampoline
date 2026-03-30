@@ -67,33 +67,147 @@ enum CLIHandler {
             exit(exitSuccess)
         }
 
-        // Try resolving via EditorShorthands
-        if let entry = EditorShorthands.resolve(input) {
-            store.editorBundleID = entry.bundleID
-            store.editorDisplayName = entry.displayName
-            print("Default editor set to: \(entry.displayName) (\(entry.bundleID))")
+        // Extension-scoped commands: --list or first arg starts with "."
+        if input == "--list" {
+            handleEditorList()
+        } else if input.hasPrefix(".") {
+            handleEditorExtension(args)
+        } else {
+            // Global editor commands (unchanged)
+            handleEditorGlobal(input)
+        }
+    }
+
+    // MARK: - editor (global)
+
+    /// Set the global default editor by shorthand, display name, or bundle ID.
+    private static func handleEditorGlobal(_ input: String) {
+        let store = ConfigStore.shared
+
+        guard let resolved = resolveEditorInput(input) else {
+            printErr("Unknown editor: \(input)")
+            printErr("Use a shorthand (e.g., zed, vscode) or a bundle ID (e.g., com.microsoft.VSCode)")
+            exit(exitError)
+        }
+
+        store.editorBundleID = resolved.bundleID
+        store.editorDisplayName = resolved.displayName
+        print("Default editor set to: \(resolved.displayName) (\(resolved.bundleID))")
+        exit(exitSuccess)
+    }
+
+    // MARK: - editor --list
+
+    /// Show global default and all per-extension overrides.
+    private static func handleEditorList() {
+        let store = ConfigStore.shared
+
+        // Global default
+        if let name = store.editorDisplayName, let id = store.editorBundleID {
+            print("DEFAULT: \(name) (\(id))")
+        } else if let id = store.editorBundleID {
+            print("DEFAULT: \(id)")
+        } else {
+            print("DEFAULT: (none)")
+        }
+
+        let overrides = store.editorOverrides
+        guard !overrides.isEmpty else {
+            print()
+            print("No per-extension overrides configured.")
             exit(exitSuccess)
         }
 
-        // If input contains a dot, treat as raw bundle ID
-        if input.contains(".") {
-            let displayName: String
-            if let appURL = NSWorkspace.shared.urlForApplication(
-                withBundleIdentifier: input
-            ) {
-                displayName = appURL.deletingPathExtension().lastPathComponent
-            } else {
-                displayName = input
+        // Group extensions by target bundle ID
+        var grouped: [String: [String]] = [:]
+        for (ext, bundleID) in overrides {
+            grouped[bundleID, default: []].append(ext)
+        }
+        // Sort groups by first extension for stable output
+        let sortedGroups = grouped.sorted { a, b in
+            (a.value.sorted().first ?? "") < (b.value.sorted().first ?? "")
+        }
+
+        print()
+        let totalExts = overrides.count
+        print("OVERRIDES (\(totalExts)):")
+
+        // Find max width of extension column for alignment
+        let extStrings = sortedGroups.map { (_, exts) in
+            exts.sorted().map { ".\($0)" }.joined(separator: " ")
+        }
+        let maxExtWidth = extStrings.map(\.count).max() ?? 0
+
+        for (i, (bundleID, _)) in sortedGroups.enumerated() {
+            let extStr = extStrings[i]
+            let displayName = store.editorOverrideNames[bundleID] ?? bundleID
+            let padded = extStr.padding(
+                toLength: maxExtWidth, withPad: " ", startingAt: 0)
+            print("  \(padded)  ->  \(displayName)")
+        }
+
+        exit(exitSuccess)
+    }
+
+    // MARK: - editor .ext [action]
+
+    /// Handle extension-scoped editor commands: query, set, or clear.
+    private static func handleEditorExtension(_ args: [String]) {
+        let store = ConfigStore.shared
+
+        // Parse comma-separated extensions from first arg
+        let rawExts = args[0].split(separator: ",").map(String.init)
+        let exts = rawExts.map { $0.hasPrefix(".") ? String($0.dropFirst()) : $0 }
+            .map { $0.lowercased() }
+            .filter { !$0.isEmpty }
+
+        guard !exts.isEmpty else {
+            printErr("No valid extensions provided.")
+            exit(exitError)
+        }
+
+        let dotExts = exts.map { ".\($0)" }
+
+        // No second arg → query resolved editor for each extension
+        guard args.count > 1 else {
+            for ext in exts {
+                let dotExt = ".\(ext)"
+                if let resolved = store.resolvedEditor(for: ext) {
+                    let isOverride = store.editorOverrides[ext] != nil
+                    let tag = isOverride ? "override" : "default"
+                    print("\(dotExt): \(resolved.bundleID) (\(resolved.displayName)) [\(tag)]")
+                } else {
+                    print("\(dotExt): (no editor configured)")
+                }
             }
-            store.editorBundleID = input
-            store.editorDisplayName = displayName
-            print("Default editor set to: \(displayName) (\(input))")
             exit(exitSuccess)
         }
 
-        printErr("Unknown editor: \(input)")
-        printErr("Use a shorthand (e.g., zed, vscode) or a bundle ID (e.g., com.microsoft.VSCode)")
-        exit(exitError)
+        let action = args[1]
+
+        // --clear → remove overrides
+        if action == "--clear" {
+            store.clearOverrides(for: exts)
+            let defaultName = store.editorDisplayName ?? store.editorBundleID ?? "none"
+            print("Cleared editor override for \(dotExts.joined(separator: ", ")) " +
+                  "(will use default: \(defaultName))")
+            exit(exitSuccess)
+        }
+
+        // Otherwise, treat action as editor shorthand / bundle ID
+        let editorInput = args.dropFirst().joined(separator: " ")
+
+        guard let resolved = resolveEditorInput(editorInput) else {
+            printErr("Unknown editor: \(editorInput)")
+            printErr("Use a shorthand (e.g., zed, vscode) or a bundle ID (e.g., com.microsoft.VSCode)")
+            exit(exitError)
+        }
+
+        store.setOverride(for: exts, editorBundleID: resolved.bundleID,
+                          displayName: resolved.displayName)
+        print("Editor for \(dotExts.joined(separator: ", ")) set to: " +
+              "\(resolved.displayName) (\(resolved.bundleID))")
+        exit(exitSuccess)
     }
 
     // MARK: - status
@@ -113,8 +227,9 @@ enum CLIHandler {
     private static func printStatusJSON(
         _ statuses: [(ext: String, status: HandlerStatus)]
     ) {
-        let entries: [[String: String]] = statuses.map { s in
-            var dict: [String: String] = ["ext": s.ext]
+        let store = ConfigStore.shared
+        let entries: [[String: Any]] = statuses.map { s in
+            var dict: [String: Any] = ["ext": s.ext]
             switch s.status {
             case .registered:
                 dict["status"] = "registered"
@@ -129,6 +244,12 @@ enum CLIHandler {
             case .unclaimed:
                 dict["status"] = "unclaimed"
             }
+            // Per-extension editor resolution
+            let ext = s.ext
+            if let resolved = store.resolvedEditor(for: ext) {
+                dict["editor"] = resolved.bundleID
+            }
+            dict["editorOverride"] = store.editorOverrides[ext.lowercased()] != nil
             return dict
         }
         do {
@@ -406,6 +527,10 @@ enum CLIHandler {
             trampoline editor                    Show current editor
             trampoline editor zed                Set Zed as default
             trampoline editor com.microsoft.VSCode  Set by bundle ID
+            trampoline editor --list                    Show all editor overrides
+            trampoline editor .rs                       Show editor for .rs
+            trampoline editor .kt,.kts intellij         Override editor for extensions
+            trampoline editor .kt --clear               Clear override, use default
             trampoline status                    Show all extensions
             trampoline status --json             Machine-readable output
             trampoline claim                     Claim unclaimed only
@@ -415,6 +540,28 @@ enum CLIHandler {
     }
 
     // MARK: - Helpers
+
+    /// Resolves an editor input string (shorthand, bundle ID, or display name)
+    /// to a (bundleID, displayName) pair. Returns nil if unresolvable.
+    private static func resolveEditorInput(
+        _ input: String
+    ) -> (bundleID: String, displayName: String)? {
+        if let entry = EditorShorthands.resolve(input) {
+            return (entry.bundleID, entry.displayName)
+        }
+        if input.contains(".") {
+            let displayName: String
+            if let appURL = NSWorkspace.shared.urlForApplication(
+                withBundleIdentifier: input
+            ) {
+                displayName = appURL.deletingPathExtension().lastPathComponent
+            } else {
+                displayName = input
+            }
+            return (input, displayName)
+        }
+        return nil
+    }
 
     private static func printErr(_ message: String) {
         FileHandle.standardError.write(
