@@ -1000,14 +1000,16 @@ Phase 3: Polish (3 tasks, ~3 hours)
 
 **Status:**
 
-| Step                     | Status  | Notes |
-| ------------------------ | ------- | ----- |
-| Delegate to @code-writer | pending |       |
-| Build verification       | pending |       |
-| Menu bar verification    | pending |       |
-| About tab verification   | pending |       |
-| Commit                   | pending | SHA:  |
-| Plan updated             | pending |       |
+| Step                     | Status | Notes                                       |
+| ------------------------ | ------ | ------------------------------------------- |
+| Delegate to @code-writer | done   |                                             |
+| Build verification       | done   |                                             |
+| Menu bar verification    | done   | icon, menu items, show/hide reactive        |
+| About tab verification   | done   | icon, version, links, license               |
+| Delegate to @code-review | done   | 1 blocker, 3 issues, 3 nits                 |
+| Fix findings             | done   | NSObject, no force-unwrap, @MainActor, copy |
+| Commit                   | done   | c0b9b53                                     |
+| Plan updated             | done   |                                             |
 
 ---
 

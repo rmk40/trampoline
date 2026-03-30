@@ -15,6 +15,49 @@ private struct ExtensionCounts {
     let claimableExts: [String]
 }
 
+// MARK: - Banner style
+
+/// Visual style for the info/warning banners in GeneralTab.
+/// Each flow uses a distinct style so the user can tell at a glance
+/// whether they're in first-run, normal, or error-recovery mode.
+private enum BannerStyle {
+    case welcome   // F-01: first-run — blue tint
+    case info      // Normal operation — gray/secondary
+    case warning   // F-08/F-09: error recovery — orange/yellow tint
+
+    var iconName: String {
+        switch self {
+        case .welcome: return "hand.wave.fill"
+        case .info:    return "info.circle"
+        case .warning: return "exclamationmark.triangle.fill"
+        }
+    }
+
+    var iconColor: Color {
+        switch self {
+        case .welcome: return .blue
+        case .info:    return .secondary
+        case .warning: return .orange
+        }
+    }
+
+    var backgroundColor: Color {
+        switch self {
+        case .welcome: return .blue
+        case .info:    return .gray
+        case .warning: return .orange
+        }
+    }
+
+    var textColor: Color {
+        switch self {
+        case .welcome: return .primary
+        case .info:    return .secondary
+        case .warning: return .primary
+        }
+    }
+}
+
 // MARK: - General Tab
 
 struct GeneralTab: View {
@@ -28,15 +71,48 @@ struct GeneralTab: View {
 
     @Bindable private var config = ConfigStore.shared
 
+    /// True when the user is in first-run mode AND has not yet picked an editor.
+    private var isFirstRunPending: Bool {
+        !config.firstRunComplete && selectedBundleID.isEmpty
+    }
+
+    /// True when the user is in first-run mode but has already picked an editor
+    /// (extension section should now be visible).
+    private var isFirstRunEditorChosen: Bool {
+        !config.firstRunComplete && !selectedBundleID.isEmpty
+    }
+
     var body: some View {
         Form {
+            if isFirstRunPending {
+                welcomeBanner
+            }
+
             editorSection
-            infoBanner
-            controlsRow
-            extensionSection
+
+            if !isFirstRunPending {
+                statusBanner
+                controlsRow
+                extensionSection
+            }
         }
         .formStyle(.grouped)
         .onAppear(perform: loadData)
+        .onChange(of: config.warningMessage) { _, _ in
+            pendingCount = FileForwarder.shared.pendingFiles.count
+        }
+    }
+
+    // MARK: - Welcome banner (F-01 first-run)
+
+    private var welcomeBanner: some View {
+        Section {
+            bannerCard(
+                style: .welcome,
+                title: "Welcome to Trampoline",
+                body: "Trampoline makes developer files open in your preferred code editor. Choose your editor below to get started."
+            )
+        }
     }
 
     // MARK: - Editor picker
@@ -67,36 +143,41 @@ struct GeneralTab: View {
         }
     }
 
-    // MARK: - Info banner
+    // MARK: - Status banner (info / warning / pending)
 
-    private var infoBanner: some View {
+    private var statusBanner: some View {
         Section {
-            HStack(alignment: .top, spacing: 6) {
-                Image(systemName: "info.circle")
-                    .foregroundStyle(.secondary)
-                Group {
-                    if selectedBundleID.isEmpty {
-                        Text("Choose an editor to get started.")
-                    } else if pendingCount > 0 {
-                        let name = config.editorDisplayName ?? "your editor"
-                        Text("\(pendingCount) file(s) waiting. Files will be forwarded to \(name).")
-                    } else {
-                        let name = config.editorDisplayName ?? "your editor"
-                        Text("When you open a developer file, Trampoline will forward it to \(name).")
-                    }
-                }
-                .foregroundStyle(.secondary)
-                .font(.callout)
-            }
-
+            // Warning banner (F-08/F-09 recovery) takes priority
             if let warning = config.warningMessage {
-                HStack(alignment: .top, spacing: 6) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.yellow)
-                    Text(warning)
-                        .foregroundStyle(.primary)
-                        .font(.callout)
-                }
+                bannerCard(style: .warning, title: nil, body: warning)
+            } else if selectedBundleID.isEmpty && pendingCount > 0 {
+                // F-08: pending files but no editor selected yet
+                bannerRow(
+                    style: .warning,
+                    text: "\(pendingCount) file(s) waiting. Choose an editor to open them."
+                )
+            } else if selectedBundleID.isEmpty {
+                bannerRow(
+                    style: .info,
+                    text: "Choose an editor to get started."
+                )
+            } else if pendingCount > 0 {
+                let name = config.editorDisplayName ?? "your editor"
+                bannerRow(
+                    style: .info,
+                    text: "\(pendingCount) file(s) waiting. Files will be forwarded to \(name)."
+                )
+            } else if isFirstRunEditorChosen, let c = counts, !c.unclaimedExts.isEmpty {
+                bannerRow(
+                    style: .info,
+                    text: "\(c.unclaimedExts.count) unclaimed extension(s) found. Click \"Claim Unclaimed\" below to register them."
+                )
+            } else {
+                let name = config.editorDisplayName ?? "your editor"
+                bannerRow(
+                    style: .info,
+                    text: "When you open a developer file, Trampoline will forward it to \(name)."
+                )
             }
         }
     }
@@ -154,6 +235,49 @@ struct GeneralTab: View {
         }
     }
 
+    // MARK: - Banner components
+
+    /// A styled card banner with optional title and body text.
+    /// Used for welcome (first-run) and warning (error recovery) banners.
+    private func bannerCard(
+        style: BannerStyle,
+        title: String?,
+        body: String
+    ) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: style.iconName)
+                .font(.title2)
+                .foregroundStyle(style.iconColor)
+                .frame(width: 24)
+
+            VStack(alignment: .leading, spacing: 4) {
+                if let title {
+                    Text(title)
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                }
+                Text(body)
+                    .font(.callout)
+                    .foregroundStyle(style.textColor)
+            }
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(style.backgroundColor.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    /// A compact single-line banner row with icon and text.
+    /// Used for contextual info messages.
+    private func bannerRow(style: BannerStyle, text: String) -> some View {
+        HStack(alignment: .top, spacing: 6) {
+            Image(systemName: style.iconName)
+                .foregroundStyle(style.iconColor)
+            Text(text)
+                .foregroundStyle(style.textColor)
+                .font(.callout)
+        }
+    }
+
     // MARK: - Actions
 
     private func loadData() {
@@ -172,17 +296,24 @@ struct GeneralTab: View {
         config.editorBundleID = editor.bundleID
         config.editorDisplayName = editor.displayName
 
+        // Retry any pending files (F-08/F-09 recovery).
         if !FileForwarder.shared.pendingFiles.isEmpty {
             _ = FileForwarder.shared.retryPending()
         }
         pendingCount = FileForwarder.shared.pendingFiles.count
 
+        // Mark first-run complete once an editor is chosen (F-01).
+        // This hides the welcome banner and reveals the extension section.
         if !config.firstRunComplete {
             config.firstRunComplete = true
         }
 
-        // Clear the warning once an editor is chosen.
+        // Clear the warning once an editor is chosen (F-08/F-09).
         config.warningMessage = nil
+
+        // Refresh extension counts so the "Claim Unclaimed (N)" button
+        // shows the correct number immediately after editor selection.
+        refreshCounts()
     }
 
     private func claimExtensions(_ exts: [String]) {
@@ -193,6 +324,11 @@ struct GeneralTab: View {
         var current = Set(config.claimedExtensions)
         for ext in exts { current.insert(ext) }
         config.claimedExtensions = Array(current).sorted()
+
+        // Mark first-run complete after claiming (F-01).
+        if !config.firstRunComplete {
+            config.firstRunComplete = true
+        }
 
         refreshCounts()
     }
