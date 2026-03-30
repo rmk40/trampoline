@@ -79,7 +79,7 @@ private struct SettingsContentView: View {
                     Label("Extensions", systemImage: "doc.plaintext")
                 }
 
-            Text("About")
+            AboutTab()
                 .tabItem {
                     Label("About", systemImage: "info.circle")
                 }

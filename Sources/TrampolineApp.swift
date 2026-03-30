@@ -21,6 +21,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         // GUI / file-forwarding mode
+        MenuBarManager.shared.setup()
         NSLog("Trampoline ready")
 
         // Show settings if no files are pending (e.g. launched from Dock).

@@ -913,18 +913,18 @@ Phase 3: Polish (3 tasks, ~3 hours)
 
 **Status:**
 
-| Step                     | Status  | Notes |
-| ------------------------ | ------- | ----- |
-| Delegate to @code-writer | pending |       |
-| Build verification       | pending |       |
-| LOOK: table renders      | pending |       |
-| LOOK: badges correct     | pending |       |
-| LOOK: search works       | pending |       |
-| LOOK: claim works        | pending |       |
-| Delegate to @code-review | pending |       |
-| Fix findings             | pending |       |
-| Commit                   | pending | SHA:  |
-| Plan updated             | pending |       |
+| Step                     | Status | Notes                                       |
+| ------------------------ | ------ | ------------------------------------------- |
+| Delegate to @code-writer | done   |                                             |
+| Build verification       | done   |                                             |
+| LOOK: table renders      | done   | all 85 extensions shown                     |
+| LOOK: badges correct     | done   | green/orange/gray capsules                  |
+| LOOK: search works       | done   | case-insensitive substring filter           |
+| LOOK: claim works        | done   | async claim + refresh                       |
+| Delegate to @code-review | done   | 2 blockers, 4 issues, 1 nit                 |
+| Fix findings             | done   | release disabled, claim results, async, etc |
+| Commit                   | done   | 71b1a29                                     |
+| Plan updated             | done   |                                             |
 
 ---
 
