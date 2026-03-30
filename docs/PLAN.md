@@ -630,16 +630,16 @@ Phase 3: Polish (3 tasks, ~3 hours)
 
 **Status:**
 
-| Step                             | Status  | Notes |
-| -------------------------------- | ------- | ----- |
-| Delegate to @code-writer         | pending |       |
-| Build verification               | pending |       |
-| CLI smoke tests                  | pending |       |
-| DRY verification (grep LS calls) | pending |       |
-| Delegate to @code-review         | pending |       |
-| Fix review findings              | pending |       |
-| Commit                           | pending | SHA:  |
-| Plan updated                     | pending |       |
+| Step                             | Status | Notes                                         |
+| -------------------------------- | ------ | --------------------------------------------- |
+| Delegate to @code-writer         | done   |                                               |
+| Build verification               | done   |                                               |
+| CLI smoke tests                  | done   | all subcommands verified                      |
+| DRY verification (grep LS calls) | done   | all 4 checks pass                             |
+| Delegate to @code-review         | done   | 2 blockers, 4 issues, 5 nits                  |
+| Fix review findings              | done   | symlink bug, DRY IDs, JSON, double query, etc |
+| Commit                           | done   | 3bd87e2                                       |
+| Plan updated                     | done   |                                               |
 
 ---
 
