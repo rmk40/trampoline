@@ -103,9 +103,10 @@ struct ExtensionsTab: View {
 
             ForEach(filteredRows) { row in
                 HStack(spacing: 0) {
-                    Toggle("", isOn: binding(for: row.id))
-                        .toggleStyle(.checkbox)
-                        .labelsHidden()
+                    Image(systemName: row.isSelected
+                          ? "checkmark.square.fill" : "square")
+                        .foregroundStyle(row.isSelected ? Color.accentColor : Color.secondary)
+                        .imageScale(.large)
                         .frame(width: 32)
 
                     Text(".\(row.ext)")
@@ -122,6 +123,12 @@ struct ExtensionsTab: View {
                         .frame(minWidth: 80, maxWidth: .infinity, alignment: .leading)
                 }
                 .font(.body)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    if let idx = rows.firstIndex(where: { $0.id == row.id }) {
+                        rows[idx].isSelected.toggle()
+                    }
+                }
             }
         }
         .listStyle(.inset(alternatesRowBackgrounds: true))
@@ -255,16 +262,6 @@ struct ExtensionsTab: View {
     }
 
     // MARK: - Bindings
-
-    private func binding(for id: String) -> Binding<Bool> {
-        Binding(
-            get: { rows.first(where: { $0.id == id })?.isSelected ?? false },
-            set: { newValue in
-                guard let idx = rows.firstIndex(where: { $0.id == id }) else { return }
-                rows[idx].isSelected = newValue
-            }
-        )
-    }
 
     private var selectAllBinding: Binding<Bool> {
         let selectable = Set(filteredRows.map(\.id))
