@@ -1,8 +1,8 @@
 # Trampoline Implementation Plan
 
-**Version:** 1.2
-**Date:** 2026-03-29
-**Status:** Complete
+**Version:** 1.3
+**Date:** 2026-03-30
+**Status:** In progress — Phase 4 (claim architecture fix)
 **Branch:** `main`
 **Source:** Design specification (`docs/00-overview.md` through `docs/06-phases.md`)
 **Estimated total effort:** 12-18 hours (6-9 sessions)
@@ -1401,6 +1401,414 @@ Each task commits independently. To roll back:
 | Auto-update mechanism        | Homebrew handles updates; Sparkle adds dependency   |
 | Code signing + notarization  | Handle at release time, not development             |
 | Windows/Linux support        | macOS-only APIs throughout                          |
+
+---
+
+## Phase 4: Claim Architecture Fix
+
+### Background
+
+After completing TR-01 through TR-11, end-to-end testing revealed a
+fundamental flaw: `trampoline claim --all` triggers a macOS confirmation
+dialog for **every single extension** (85 dialogs). This is exactly the
+UX problem Trampoline was built to eliminate.
+
+**Root cause:** `ExtensionRegistry.claim()` calls
+`LSSetDefaultRoleHandlerForContentType` for ALL extensions, including the
+60 custom UTI extensions that should be handled **silently** via
+`Info.plist` registration + `lsregister -f`.
+
+**The key insight:** macOS treats the two registration mechanisms
+differently:
+
+| Mechanism                                                                                  | When used                                                    | Dialog?                                         |
+| ------------------------------------------------------------------------------------------ | ------------------------------------------------------------ | ----------------------------------------------- |
+| `CFBundleDocumentTypes` with `LSHandlerRank=Default/Owner` in Info.plist + `lsregister -f` | Custom UTIs where Trampoline is the only declaring app       | **No** — macOS silently sets the handler        |
+| `LSSetDefaultRoleHandlerForContentType` API call                                           | System/dynamic UTIs where another app is already the handler | **Yes** — macOS 12+ shows a confirmation dialog |
+
+**The 60/25 split:**
+
+- **60 extensions** (custom `dev.devfiletypes.*` UTIs, rank `.primary`):
+  Silently registered via plist. The `claim` API should NEVER be called
+  for these. Evidence: two custom UTIs that were never explicitly claimed
+  (`r-source`, `elixir-source`) still correctly show Trampoline as the
+  handler — proving plist registration alone is sufficient.
+
+- **25 extensions** (7 system `public.*` UTIs + 18 dynamic UTIs, rank
+  `.alternate`): Require explicit `LSSetDefaultRoleHandlerForContentType`
+  call to override. These MAY show confirmation dialogs when displacing
+  an existing handler.
+
+**Decision:** Redesign the claim architecture so that:
+
+1. Custom UTI extensions are NEVER passed to the LS API — they rely
+   solely on plist registration
+2. `claim` only operates on the 25 system/dynamic UTI extensions
+3. The user is warned that claiming may show confirmation dialogs
+4. Status display distinguishes "registered" (automatic) from "claimed"
+   (explicit)
+
+### Decision Log Additions
+
+| #   | Topic                           | Decision                                                | Rationale                                                                        |
+| --- | ------------------------------- | ------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| 13  | Silent vs explicit registration | Custom UTIs rely on plist+lsregister, never LS API      | Avoids 60 unnecessary confirmation dialogs; plist registration proven sufficient |
+| 14  | HandlerStatus.registered        | New enum case for plist-registered extensions           | Distinguishes automatic registration from explicit user-confirmed claiming       |
+| 15  | Exported UTIs use Owner rank    | Change from LSHandlerRank=Default to Owner for exported | Owner rank gives highest priority in LS conflict resolution                      |
+| 16  | Claim warns about dialogs       | CLI and GUI warn that claiming may show macOS dialogs   | User should understand what "claim" does before confirming 25 potential dialogs  |
+
+---
+
+### FIX-01: ExtensionRegistry — Separate Silent vs Explicit Claiming
+
+**Estimated effort:** 30 minutes
+**Dependencies:** None
+**References:** Phase 4 background (above), `Sources/ExtensionRegistry.swift`
+
+**Delegation prompt for `@code-writer`:**
+
+> Read and modify `Sources/ExtensionRegistry.swift` in the Trampoline macOS
+> app at `/Users/rmk/projects/tools/trampoline`.
+>
+> **Problem:** `claim()` calls `LSSetDefaultRoleHandlerForContentType` for
+> ALL extensions, including 60 custom UTI extensions that are silently
+> registered via Info.plist + lsregister. This triggers 85 macOS
+> confirmation dialogs when it should trigger at most 25.
+>
+> **Changes required:**
+>
+> 1. Add a new `HandlerStatus` case: `.registered` — for extensions that
+>    are handled via plist registration (custom UTIs with rank `.primary`).
+>    Update the `Equatable` conformance accordingly.
+> 2. Add convenience properties on `ExtensionRegistry`:
+>    - `static var plistRegistered: [ManagedExtension]` — extensions with
+>      rank `.primary` (60 extensions, silently registered via plist)
+>    - `static var explicitOnly: [ManagedExtension]` — extensions with
+>      rank `.alternate` (25 extensions, require LS API to claim)
+> 3. Modify `queryAllStatuses()`: For extensions with rank `.primary`,
+>    if the current handler is Trampoline, return `.registered` (not
+>    `.claimed`). If the handler is something else, still return `.other`.
+>    If unclaimed, return `.registered` (the plist will handle it once
+>    lsregister runs). For extensions with rank `.alternate`, keep
+>    existing logic (`.claimed` / `.other` / `.unclaimed`).
+> 4. Modify `claim(extensions:)`: SKIP any extension where
+>    `rank == .primary`. Only call `LSSetDefaultRoleHandlerForContentType`
+>    for `.alternate` extensions. Return a result that distinguishes
+>    "skipped (plist-registered)" from "success" and "failed":
+>
+>    ```swift
+>    enum ClaimResult { case skipped, success, failed }
+>    ```
+>
+>    Return type changes to `[(ext: String, result: ClaimResult)]`.
+>
+> 5. Add a helper: `static func managedExtension(for ext: String) -> ManagedExtension?`
+>    to look up an extension's metadata by name.
+>
+> **Critical:** Keep ALL LS API calls inside this file. No other file
+> should call `LSCopyDefaultRoleHandlerForContentType` or
+> `LSSetDefaultRoleHandlerForContentType`.
+
+**Acceptance criteria:**
+
+- `HandlerStatus` has `.registered`, `.claimed`, `.other`, `.unclaimed`
+- `claim()` never calls LS API for `.primary` rank extensions
+- `queryAllStatuses()` returns `.registered` for custom UTI extensions
+  owned by Trampoline
+- Build compiles with zero warnings
+
+**Status:**
+
+| Step                     | Status  | Notes |
+| ------------------------ | ------- | ----- |
+| Delegate to @code-writer | pending |       |
+| Build verification       | pending |       |
+| Commit                   | pending | SHA:  |
+| Plan updated             | pending |       |
+
+---
+
+### FIX-02: CLIHandler — Update Status and Claim Output
+
+**Estimated effort:** 30 minutes
+**Dependencies:** FIX-01
+**References:** `Sources/CLIHandler.swift`, `docs/04-wireframes.md`
+
+**Delegation prompt for `@code-writer`:**
+
+> Read and modify `Sources/CLIHandler.swift` in the Trampoline macOS app
+> at `/Users/rmk/projects/tools/trampoline`.
+>
+> **Context:** After FIX-01, `HandlerStatus` now has `.registered`
+> (plist-auto) in addition to `.claimed`, `.other`, `.unclaimed`, and
+> `ExtensionRegistry.claim()` returns `ClaimResult` (.skipped/.success/.failed).
+>
+> **Changes required:**
+>
+> 1. Update `printStatus()`:
+>    - Add a new section "REGISTERED" for `.registered` extensions, shown
+>      first with a note "(via Info.plist — no dialogs needed)":
+>
+>    ```
+>    Trampoline v1.0
+>    Editor: Zed (dev.zed.Zed)
+>
+>    REGISTERED (60) — automatic via Info.plist
+>      .ts .mts .cts .tsx .jsx .vue .svelte .astro .rs .go ...
+>
+>    CLAIMED (5)
+>      .json .yaml .yml .xml .py
+>
+>    OTHER (15)
+>      .rb            BBEdit
+>      .sh            Terminal
+>      ...
+>
+>    UNCLAIMED (5)
+>      .bash .zsh .sql ...
+>
+>    85 extensions: 60 registered, 5 claimed, 15 other, 5 unclaimed
+>    ```
+>
+> 2. Update `printStatusJSON()`:
+>    - `.registered` entries get `"status": "registered"`
+> 3. Update `handleClaim()`:
+>    - Before claiming, count how many extensions will actually trigger
+>      the LS API (rank `.alternate` only). Warn the user:
+>      ```
+>      60 extensions are automatically registered (no action needed).
+>      Claiming N remaining extension(s) — macOS may show confirmation dialogs.
+>      ```
+>    - After claiming, report results including skipped count.
+>    - For `claim --all`: only claim `.other` + `.unclaimed` among
+>      `.alternate` rank extensions. Do NOT claim `.primary` rank.
+>    - For `claim` (no flag): only claim `.unclaimed` among `.alternate`
+>      rank extensions.
+
+**Acceptance criteria:**
+
+- `trampoline status` shows REGISTERED/CLAIMED/OTHER/UNCLAIMED sections
+- `trampoline claim` warns about dialog count before proceeding
+- `trampoline claim` never triggers dialogs for custom UTI extensions
+- Build compiles with zero warnings
+
+**Status:**
+
+| Step                     | Status  | Notes |
+| ------------------------ | ------- | ----- |
+| Delegate to @code-writer | pending |       |
+| Build verification       | pending |       |
+| CLI smoke test           | pending |       |
+| Commit                   | pending | SHA:  |
+| Plan updated             | pending |       |
+
+---
+
+### FIX-03: GeneralTab — Update Status Counts and Claim Buttons
+
+**Estimated effort:** 20 minutes
+**Dependencies:** FIX-01
+**References:** `Sources/GeneralTab.swift`
+
+**Delegation prompt for `@code-writer`:**
+
+> Read and modify `Sources/GeneralTab.swift` in the Trampoline macOS app
+> at `/Users/rmk/projects/tools/trampoline`.
+>
+> **Context:** After FIX-01, `HandlerStatus` now has `.registered`.
+> `ExtensionRegistry.claim()` returns `ClaimResult` and skips
+> `.primary` rank extensions.
+>
+> **Changes required:**
+>
+> 1. Update `ExtensionCounts` struct:
+>    - Add `registered: Int` count
+>    - Add `registeredExts: [String]` list
+>    - Populate from `.registered` status entries
+> 2. Update the extension status summary line:
+>    ```
+>    85 managed | 60 registered | N claimed | N other | N unclaimed
+>    ```
+> 3. Update claim buttons:
+>    - "Claim Unclaimed (N)" — only counts unclaimed `.alternate` extensions
+>    - "Claim All (N)" — only counts non-claimed `.alternate` extensions
+>    - Add a note below the buttons: "May show macOS confirmation dialogs"
+> 4. Update `claimExtensions()`:
+>    - Handle `ClaimResult` instead of `Bool`
+>    - Only pass `.alternate` extensions to `ExtensionRegistry.claim()`
+>    - Log skipped, succeeded, and failed counts
+
+**Acceptance criteria:**
+
+- Status line shows registered count
+- Claim buttons only count/operate on `.alternate` rank extensions
+- "May show dialogs" note is visible
+- Build compiles with zero warnings
+
+**Status:**
+
+| Step                     | Status  | Notes |
+| ------------------------ | ------- | ----- |
+| Delegate to @code-writer | pending |       |
+| Build verification       | pending |       |
+| Commit                   | pending | SHA:  |
+| Plan updated             | pending |       |
+
+---
+
+### FIX-04: ExtensionsTab — Distinguish Registered vs Claimable
+
+**Estimated effort:** 20 minutes
+**Dependencies:** FIX-01
+**References:** `Sources/ExtensionsTab.swift`
+
+**Delegation prompt for `@code-writer`:**
+
+> Read and modify `Sources/ExtensionsTab.swift` in the Trampoline macOS
+> app at `/Users/rmk/projects/tools/trampoline`.
+>
+> **Context:** After FIX-01, `HandlerStatus` now has `.registered`
+> for custom UTI extensions handled via plist. These should be
+> visually distinct from "Claimed" and should not have checkboxes.
+>
+> **Changes required:**
+>
+> 1. Update `statusBadge(for:)`:
+>    - `.registered` — blue badge with text "Registered"
+>    - `.claimed` — green badge "Claimed" (unchanged)
+>    - `.other` — orange badge "Other" (unchanged)
+>    - `.unclaimed` — gray badge "Unclaimed" (unchanged)
+> 2. Update `handlerDisplayName(for:)`:
+>    - `.registered` — "Trampoline (auto)"
+> 3. Disable checkboxes for `.registered` rows — these extensions
+>    can't be claimed or released (they're plist-managed).
+> 4. Update "Claim All" button:
+>    - Only count non-claimed `.alternate` rank extensions (not registered)
+>    - Add tooltip or label: "May show macOS confirmation dialogs"
+> 5. Update the "Claim Selected" button to skip `.registered` selections
+>    (or just don't let them be selected via disabled checkboxes).
+> 6. Update sort order: Registered should sort after Other and Unclaimed
+>    (since they need no action). Order: Other → Unclaimed → Claimed →
+>    Registered.
+
+**Acceptance criteria:**
+
+- Registered extensions show blue badge, no checkbox
+- Claim buttons only operate on `.alternate` rank extensions
+- Sort order puts actionable items first
+- Build compiles with zero warnings
+
+**Status:**
+
+| Step                     | Status  | Notes |
+| ------------------------ | ------- | ----- |
+| Delegate to @code-writer | pending |       |
+| Build verification       | pending |       |
+| Commit                   | pending | SHA:  |
+| Plan updated             | pending |       |
+
+---
+
+### FIX-05: Info.plist — Upgrade Exported UTIs to Owner Rank
+
+**Estimated effort:** 10 minutes
+**Dependencies:** None
+**References:** `Trampoline.app/Contents/Info.plist`
+
+**Delegation prompt for `@code-writer`:**
+
+> Read and modify `Trampoline.app/Contents/Info.plist` in the Trampoline
+> macOS app at `/Users/rmk/projects/tools/trampoline`.
+>
+> **Change:** For the 2 exported UTIs (TypeScript and R), change
+> `LSHandlerRank` from `Default` to `Owner` in their
+> `CFBundleDocumentTypes` entries.
+>
+> The exported UTIs are:
+>
+> - `dev.devfiletypes.typescript-source` (extensions: ts, mts, cts)
+> - `dev.devfiletypes.r-source` (extensions: r, R)
+>
+> Find the CFBundleDocumentTypes entries that reference these UTIs and
+> change:
+>
+> ```xml
+> <key>LSHandlerRank</key>
+> <string>Default</string>
+> ```
+>
+> to:
+>
+> ```xml
+> <key>LSHandlerRank</key>
+> <string>Owner</string>
+> ```
+>
+> Leave all other entries (imported UTIs, system UTIs, dynamic UTIs)
+> unchanged.
+>
+> After editing, run `plutil -lint` to validate.
+
+**Acceptance criteria:**
+
+- TypeScript and R CFBundleDocumentTypes entries use `LSHandlerRank=Owner`
+- All other entries unchanged
+- `plutil -lint` passes
+
+**Status:**
+
+| Step                     | Status  | Notes |
+| ------------------------ | ------- | ----- |
+| Delegate to @code-writer | pending |       |
+| plutil validation        | pending |       |
+| Commit                   | pending | SHA:  |
+| Plan updated             | pending |       |
+
+---
+
+### FIX-06: Final Verification and Commit
+
+**Dependencies:** FIX-01 through FIX-05
+**References:** DRY Verification Checklist, Validation Protocol
+
+**Steps:**
+
+1. `make clean && make all` — zero warnings
+2. DRY verification checklist (4 grep checks)
+3. CLI smoke tests:
+   - `trampoline status` — shows REGISTERED section with 60 extensions
+   - `trampoline claim` — warns about dialog count, only claims `.alternate`
+   - `trampoline status --json` — `.registered` status in JSON
+4. Delegate to `@code-review` — full review of changed files
+5. Fix any review findings
+6. Commit with message:
+
+   ```
+   fix(core): separate plist registration from explicit claiming
+
+   - Custom UTI extensions (60) rely on Info.plist + lsregister,
+     never call LSSetDefaultRoleHandlerForContentType
+   - System/dynamic UTI extensions (25) use explicit claim with
+     user warning about macOS confirmation dialogs
+   - New HandlerStatus.registered for plist-managed extensions
+   - Exported UTIs upgraded to LSHandlerRank=Owner
+   - CLI status shows REGISTERED/CLAIMED/OTHER/UNCLAIMED
+   - GUI distinguishes registered (blue) from claimed (green)
+   ```
+
+7. Update this plan: mark all FIX steps done
+
+**Status:**
+
+| Step                     | Status  | Notes |
+| ------------------------ | ------- | ----- |
+| Build verification       | pending |       |
+| DRY verification         | pending |       |
+| CLI smoke tests          | pending |       |
+| Delegate to @code-review | pending |       |
+| Fix review findings      | pending |       |
+| Commit                   | pending | SHA:  |
+| Plan updated             | pending |       |
 
 ---
 

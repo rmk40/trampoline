@@ -5,13 +5,14 @@ import UniformTypeIdentifiers
 
 private struct ExtensionCounts {
     let total: Int
+    let registered: Int
     let claimed: Int
     let other: Int
     let unclaimed: Int
 
-    /// Extensions eligible for "Claim Unclaimed" (unclaimed only).
+    /// Alternate-rank extensions eligible for "Claim Unclaimed" (unclaimed only).
     let unclaimedExts: [String]
-    /// Extensions eligible for "Claim All" (unclaimed + other).
+    /// Alternate-rank extensions eligible for "Claim All" (unclaimed + other).
     let claimableExts: [String]
 }
 
@@ -213,20 +214,26 @@ struct GeneralTab: View {
     private var extensionSection: some View {
         Section("Extension Status") {
             if let c = counts {
-                Text("\(c.total) managed  |  \(c.claimed) claimed  |  \(c.other) other  |  \(c.unclaimed) unclaimed")
+                Text("\(c.total) managed  |  \(c.registered) registered  |  \(c.claimed) claimed  |  \(c.other) other  |  \(c.unclaimed) unclaimed")
                     .font(.callout)
                     .foregroundStyle(.secondary)
 
-                HStack {
-                    Button("Claim Unclaimed (\(c.unclaimedExts.count))") {
-                        claimExtensions(c.unclaimedExts)
-                    }
-                    .disabled(c.unclaimedExts.isEmpty)
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Button("Claim Unclaimed (\(c.unclaimedExts.count))") {
+                            claimExtensions(c.unclaimedExts)
+                        }
+                        .disabled(c.unclaimedExts.isEmpty)
 
-                    Button("Claim All (\(c.claimableExts.count))") {
-                        claimExtensions(c.claimableExts)
+                        Button("Claim All (\(c.claimableExts.count))") {
+                            claimExtensions(c.claimableExts)
+                        }
+                        .disabled(c.claimableExts.isEmpty)
                     }
-                    .disabled(c.claimableExts.isEmpty)
+
+                    Text("May show macOS confirmation dialogs")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             } else {
                 ProgressView()
@@ -316,17 +323,21 @@ struct GeneralTab: View {
         refreshCounts()
     }
 
+    /// Claims the given alternate-rank extensions. Registered (plist-managed)
+    /// extensions are never passed here — they are filtered out in
+    /// `refreshCounts()` so the button counts exclude them. Even if one
+    /// slipped through, `ExtensionRegistry.claim()` would return `.skipped`.
     private func claimExtensions(_ exts: [String]) {
         guard !exts.isEmpty else { return }
         let results = ExtensionRegistry.claim(extensions: exts)
-        let failed = results.filter { !$0.success }
+        let failed = results.filter { $0.result == .failed }
         if !failed.isEmpty {
             NSLog("Trampoline: failed to claim %d extension(s): %@",
                   failed.count, failed.map { ".\($0.ext)" }.joined(separator: ", "))
         }
 
         // Update ConfigStore's claimed list to match CLI behavior.
-        let succeeded = results.filter(\.success)
+        let succeeded = results.filter { $0.result == .success }
         var current = Set(config.claimedExtensions)
         for r in succeeded { current.insert(r.ext) }
         config.claimedExtensions = Array(current).sorted()
@@ -341,7 +352,11 @@ struct GeneralTab: View {
 
     private func refreshCounts() {
         let statuses = ExtensionRegistry.queryAllStatuses()
+        // Build a lookup so we can check rank when routing .other statuses.
+        let managedByExt = Dictionary(
+            uniqueKeysWithValues: ExtensionRegistry.all.map { ($0.ext, $0) })
 
+        var registered = 0
         var claimed = 0
         var other = 0
         var unclaimed = 0
@@ -349,21 +364,34 @@ struct GeneralTab: View {
         var claimableExts = [String]()
 
         for s in statuses {
+            let rank = managedByExt[s.ext]?.rank
             switch s.status {
+            case .registered:
+                // Plist-managed custom UTI — no LS API call needed.
+                registered += 1
             case .claimed:
                 claimed += 1
             case .other:
                 other += 1
-                claimableExts.append(s.ext)
+                // Only alternate-rank extensions can be claimed via LS API.
+                // Primary-rank .other means another app declared the same UTI;
+                // an LS call won't help and would trigger a confirmation dialog.
+                if rank == .alternate {
+                    claimableExts.append(s.ext)
+                }
             case .unclaimed:
                 unclaimed += 1
-                unclaimedExts.append(s.ext)
-                claimableExts.append(s.ext)
+                // Only alternate-rank extensions need explicit claiming.
+                if rank == .alternate {
+                    unclaimedExts.append(s.ext)
+                    claimableExts.append(s.ext)
+                }
             }
         }
 
         counts = ExtensionCounts(
             total: statuses.count,
+            registered: registered,
             claimed: claimed,
             other: other,
             unclaimed: unclaimed,

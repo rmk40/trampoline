@@ -116,6 +116,9 @@ enum CLIHandler {
         let entries: [[String: String]] = statuses.map { s in
             var dict: [String: String] = ["ext": s.ext]
             switch s.status {
+            case .registered:
+                dict["status"] = "registered"
+                dict["handler"] = ExtensionRegistry.trampolineBundleID
             case .claimed:
                 dict["status"] = "claimed"
                 dict["handler"] = ExtensionRegistry.trampolineBundleID
@@ -156,17 +159,29 @@ enum CLIHandler {
         print()
 
         // Group by status
-        var claimed   = [String]()
-        var other     = [(ext: String, handler: String)]()
-        var unclaimed = [String]()
+        var registered = [String]()
+        var claimed    = [String]()
+        var other      = [(ext: String, handler: String)]()
+        var unclaimed  = [String]()
 
         for s in statuses {
             switch s.status {
-            case .claimed:          claimed.append(s.ext)
+            case .registered:          registered.append(s.ext)
+            case .claimed:             claimed.append(s.ext)
             case .other(_, let name):  other.append((s.ext, name))
-            case .unclaimed:        unclaimed.append(s.ext)
+            case .unclaimed:           unclaimed.append(s.ext)
             }
         }
+
+        // REGISTERED
+        print("REGISTERED (\(registered.count))" +
+              " \u{2014} automatic via Info.plist")
+        if registered.isEmpty {
+            print("  (none)")
+        } else {
+            print("  \(registered.map { ".\($0)" }.joined(separator: " "))")
+        }
+        print()
 
         // CLAIMED
         print("CLAIMED (\(claimed.count))")
@@ -202,7 +217,8 @@ enum CLIHandler {
 
         // Summary
         let total = statuses.count
-        print("\(total) extensions: \(claimed.count) claimed, " +
+        print("\(total) extensions: " +
+              "\(registered.count) registered, \(claimed.count) claimed, " +
               "\(other.count) other, \(unclaimed.count) unclaimed")
     }
 
@@ -212,12 +228,15 @@ enum CLIHandler {
         let claimAll = args.contains("--all")
         let statuses = ExtensionRegistry.queryAllStatuses()
 
+        // Count plist-registered extensions for messaging
+        let registeredCount = statuses.filter { $0.status == .registered }.count
+
         let toClaim: [String]
         if claimAll {
-            // Claim unclaimed + contested (other)
+            // Claim unclaimed + contested (other); skip registered + claimed
             toClaim = statuses.compactMap { s in
                 switch s.status {
-                case .claimed: return nil
+                case .registered, .claimed: return nil
                 case .other, .unclaimed: return s.ext
                 }
             }
@@ -228,14 +247,25 @@ enum CLIHandler {
             }
         }
 
+        // Pre-claim messaging
+        if registeredCount > 0 {
+            print("\(registeredCount) extensions are automatically registered " +
+                  "via Info.plist (no action needed).")
+        }
+
         if toClaim.isEmpty {
             print("Nothing to claim.")
             exit(exitSuccess)
         }
 
+        print("Claiming \(toClaim.count) remaining extension(s)" +
+              " \u{2014} macOS may show confirmation dialogs.")
+        print()
+
         let results = ExtensionRegistry.claim(extensions: toClaim)
-        let succeeded = results.filter(\.success)
-        let failed = results.filter { !$0.success }
+        let succeeded = results.filter { $0.result == .success }
+        let skipped = results.filter { $0.result == .skipped }
+        let failed = results.filter { $0.result == .failed }
 
         if !succeeded.isEmpty {
             print("Claimed \(succeeded.count) extension(s):")
@@ -248,8 +278,13 @@ enum CLIHandler {
             store.claimedExtensions = Array(current).sorted()
         }
 
+        // Summary line
+        print()
+        print("\(succeeded.count) claimed, \(failed.count) failed, " +
+              "\(skipped.count) skipped (plist-registered).")
+
         if !failed.isEmpty {
-            printErr("Failed to claim \(failed.count) extension(s):")
+            printErr("Failed extension(s):")
             printErr("  \(failed.map { ".\($0.ext)" }.joined(separator: " "))")
             exit(exitError)
         }

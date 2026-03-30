@@ -896,8 +896,9 @@
 	<array>
 
 		<!-- ========================================
-		     Custom UTI entries (LSHandlerRank = Default)
-		     43 entries covering 60 extensions
+		     Custom UTI entries — 43 entries covering 60 extensions
+		     (LSHandlerRank = Owner for exported UTIs,
+		      Default for imported UTIs)
 		     ======================================== -->
 
 		<!-- 1. TypeScript Source (ts, mts, cts) -->
@@ -907,7 +908,7 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSHandlerRank</key>
-			<string>Default</string>
+			<string>Owner</string>
 			<key>LSItemContentTypes</key>
 			<array>
 				<string>dev.devfiletypes.typescript-source</string>
@@ -920,7 +921,7 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSHandlerRank</key>
-			<string>Default</string>
+			<string>Owner</string>
 			<key>LSItemContentTypes</key>
 			<array>
 				<string>dev.devfiletypes.r-source</string>

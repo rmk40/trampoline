@@ -6,10 +6,13 @@ import UniformTypeIdentifiers
 
 enum HandlerRank { case primary, alternate }
 enum HandlerStatus: Equatable {
+    case registered  // plist-registered custom UTI (rank .primary)
     case claimed
     case other(bundleID: String, displayName: String)
     case unclaimed
 }
+
+enum ClaimResult { case skipped, success, failed }
 
 struct ManagedExtension {
     let ext: String         // e.g., "rs"
@@ -169,6 +172,26 @@ enum ExtensionRegistry {
         return list
     }()
 
+    // MARK: - Convenience filters
+
+    /// Extensions handled via plist registration (custom UTIs, rank .primary).
+    static var plistRegistered: [ManagedExtension] {
+        all.filter { $0.rank == .primary }
+    }
+
+    /// Extensions that require an explicit LSSetDefaultRoleHandlerForContentType
+    /// call (system/dynamic UTIs, rank .alternate).
+    static var explicitOnly: [ManagedExtension] {
+        all.filter { $0.rank == .alternate }
+    }
+
+    // MARK: - Lookup
+
+    /// Find the ManagedExtension entry for a given file extension string.
+    static func managedExtension(for ext: String) -> ManagedExtension? {
+        all.first(where: { $0.ext == ext })
+    }
+
     // MARK: - UTI resolution
 
     /// Resolve the UTI for an extension. Uses the stored UTI if available,
@@ -212,18 +235,41 @@ enum ExtensionRegistry {
     // MARK: - Query all statuses
 
     /// Returns the handler status for every managed extension.
+    ///
+    /// For `.primary` rank (custom UTI) extensions, the handler is registered
+    /// via Info.plist + lsregister, so we return `.registered` unless another
+    /// app has overridden the UTI (rare edge case → `.other`).
+    ///
+    /// For `.alternate` rank extensions, we use the existing claimed/other/
+    /// unclaimed logic since they require an explicit LS API call.
     static func queryAllStatuses() -> [(ext: String, status: HandlerStatus)] {
         all.map { managed in
-            guard let handler = queryHandler(for: managed.ext) else {
-                return (managed.ext, .unclaimed)
-            }
-
-            if handler.bundleID.lowercased() == trampolineBundleID.lowercased() {
-                return (managed.ext, .claimed)
+            if managed.rank == .primary {
+                // Custom UTI — plist registration handles this.
+                guard let handler = queryHandler(for: managed.ext) else {
+                    // No handler yet; lsregister will pick it up.
+                    return (managed.ext, .registered)
+                }
+                if handler.bundleID.lowercased() == trampolineBundleID.lowercased() {
+                    return (managed.ext, .registered)
+                } else {
+                    // Another app also declared this UTI.
+                    return (managed.ext, .other(
+                        bundleID: handler.bundleID,
+                        displayName: handler.displayName))
+                }
             } else {
-                return (managed.ext, .other(
-                    bundleID: handler.bundleID,
-                    displayName: handler.displayName))
+                // System/dynamic UTI — requires explicit claim.
+                guard let handler = queryHandler(for: managed.ext) else {
+                    return (managed.ext, .unclaimed)
+                }
+                if handler.bundleID.lowercased() == trampolineBundleID.lowercased() {
+                    return (managed.ext, .claimed)
+                } else {
+                    return (managed.ext, .other(
+                        bundleID: handler.bundleID,
+                        displayName: handler.displayName))
+                }
             }
         }
     }
@@ -233,19 +279,32 @@ enum ExtensionRegistry {
     /// Claims the given extensions by setting Trampoline as the default handler.
     /// This is the ONLY place in the codebase that calls
     /// LSSetDefaultRoleHandlerForContentType.
-    @discardableResult
+    ///
+    /// Extensions with rank `.primary` are skipped — they are already handled
+    /// via plist registration and do not need (or want) an LS API call that
+    /// would trigger a macOS confirmation dialog.
     static func claim(
         extensions exts: [String]
-    ) -> [(ext: String, success: Bool)] {
+    ) -> [(ext: String, result: ClaimResult)] {
         exts.map { ext in
+            guard let managed = managedExtension(for: ext) else {
+                return (ext, .failed)
+            }
+
+            // Custom UTI extensions are registered via Info.plist; skip the
+            // LS call to avoid unnecessary confirmation dialogs.
+            if managed.rank == .primary {
+                return (ext, .skipped)
+            }
+
             guard let uti = resolveUTI(for: ext) else {
-                return (ext, false)
+                return (ext, .failed)
             }
 
             let status = LSSetDefaultRoleHandlerForContentType(
                 uti as CFString, .all, trampolineBundleID as CFString)
 
-            return (ext, status == noErr)
+            return (ext, status == noErr ? .success : .failed)
         }
     }
 }

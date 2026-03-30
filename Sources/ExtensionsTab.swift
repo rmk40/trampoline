@@ -35,7 +35,7 @@ struct ExtensionsTab: View {
     }
 
     private var selectedCount: Int {
-        rows.filter(\.isSelected).count
+        rows.filter { $0.isSelected && $0.status != .registered }.count
     }
 
     var body: some View {
@@ -68,7 +68,7 @@ struct ExtensionsTab: View {
             Spacer()
 
             Button("Claim All") { claimAll() }
-                .disabled(rows.allSatisfy { $0.status == .claimed })
+                .disabled(rows.allSatisfy { $0.status == .claimed || $0.status == .registered })
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -97,10 +97,12 @@ struct ExtensionsTab: View {
             .listRowSeparator(.visible, edges: .bottom)
 
             ForEach(filteredRows) { row in
+                let isRegistered = row.status == .registered
                 HStack(spacing: 0) {
                     Toggle("", isOn: binding(for: row.id))
                         .toggleStyle(.checkbox)
                         .labelsHidden()
+                        .disabled(isRegistered)
                         .frame(width: 32)
 
                     Text(".\(row.ext)")
@@ -167,9 +169,10 @@ struct ExtensionsTab: View {
 
     private func statusBadge(_ status: HandlerStatus) -> some View {
         let (label, color): (String, Color) = switch status {
-        case .claimed:  ("Claimed",   .green)
-        case .other:    ("Other",     .orange)
-        case .unclaimed: ("Unclaimed", .gray)
+        case .registered: ("Registered", .blue)
+        case .claimed:    ("Claimed",    .green)
+        case .other:      ("Other",      .orange)
+        case .unclaimed:  ("Unclaimed",  .gray)
         }
 
         return Text(label)
@@ -186,23 +189,29 @@ struct ExtensionsTab: View {
         Binding(
             get: { rows.first(where: { $0.id == id })?.isSelected ?? false },
             set: { newValue in
-                if let idx = rows.firstIndex(where: { $0.id == id }) {
-                    rows[idx].isSelected = newValue
-                }
+                guard let idx = rows.firstIndex(where: { $0.id == id }) else { return }
+                guard rows[idx].status != .registered else { return }
+                rows[idx].isSelected = newValue
             }
         )
     }
 
     private var selectAllBinding: Binding<Bool> {
-        let visible = Set(filteredRows.map(\.id))
+        // Only non-registered rows are selectable — registered extensions
+        // are plist-managed and can't be claimed or released.
+        let selectable = Set(
+            filteredRows
+                .filter { $0.status != .registered }
+                .map(\.id)
+        )
         return Binding(
             get: {
-                !visible.isEmpty && visible.allSatisfy { id in
+                !selectable.isEmpty && selectable.allSatisfy { id in
                     rows.first(where: { $0.id == id })?.isSelected == true
                 }
             },
             set: { newValue in
-                for id in visible {
+                for id in selectable {
                     if let idx = rows.firstIndex(where: { $0.id == id }) {
                         rows[idx].isSelected = newValue
                     }
@@ -236,23 +245,25 @@ struct ExtensionsTab: View {
     /// is that *all* extensions are claimed, not just the visible subset.
     private func claimAll() {
         let exts = rows
-            .filter { $0.status != .claimed }
+            .filter { $0.status != .claimed && $0.status != .registered }
             .map(\.ext)
         guard !exts.isEmpty else { return }
         performClaim(exts)
     }
 
     private func claimSelected() {
+        // Registered rows have disabled checkboxes, but filter defensively.
         let exts = rows
-            .filter { $0.isSelected }
+            .filter { $0.isSelected && $0.status != .registered }
             .map(\.ext)
         guard !exts.isEmpty else { return }
         performClaim(exts)
     }
 
     private func releaseSelected() {
+        // Registered rows have disabled checkboxes, but filter defensively.
         let exts = rows
-            .filter { $0.isSelected }
+            .filter { $0.isSelected && $0.status != .registered }
             .map(\.ext)
         NSLog("[Trampoline] Release requested for: %@", exts.joined(separator: ", "))
     }
@@ -263,7 +274,7 @@ struct ExtensionsTab: View {
 
         Task.detached {
             let results = ExtensionRegistry.claim(extensions: exts)
-            let failed = results.filter { !$0.success }
+            let failed = results.filter { $0.result == .failed }
             if !failed.isEmpty {
                 NSLog("Trampoline: failed to claim %d extension(s): %@",
                       failed.count,
@@ -274,7 +285,7 @@ struct ExtensionsTab: View {
 
             await MainActor.run {
                 // Update ConfigStore's claimed list to match GeneralTab behavior.
-                let succeeded = results.filter(\.success).map(\.ext)
+                let succeeded = results.filter { $0.result == .success }.map(\.ext)
                 if !succeeded.isEmpty {
                     var current = Set(ConfigStore.shared.claimedExtensions)
                     for ext in succeeded { current.insert(ext) }
@@ -298,6 +309,8 @@ struct ExtensionsTab: View {
 
     private func handlerDisplayName(_ status: HandlerStatus) -> String {
         switch status {
+        case .registered:
+            return "Trampoline (auto)"
         case .claimed:
             return "Trampoline"
         case .other(_, let displayName):
@@ -327,8 +340,9 @@ private extension Array where Element == ExtensionRow {
 
 private func statusPriority(_ status: HandlerStatus) -> Int {
     switch status {
-    case .other:     return 0
-    case .unclaimed: return 1
-    case .claimed:   return 2
+    case .other:      return 0
+    case .unclaimed:  return 1
+    case .claimed:    return 2
+    case .registered: return 3
     }
 }
