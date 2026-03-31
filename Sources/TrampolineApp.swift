@@ -20,6 +20,34 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             exit(0)
         }
 
+        // --- Move-to-Applications check ---
+        let bundlePath = Bundle.main.bundlePath
+        let homePath = NSHomeDirectory()
+        let validPrefixes = ["/Applications/", homePath + "/Applications/"]
+        let isInstalled = validPrefixes.contains { bundlePath.hasPrefix($0) }
+
+        if !isInstalled && !ConfigStore.shared.suppressMovePrompt {
+            let onDMG = bundlePath.hasPrefix("/Volumes/")
+            let action = showMoveToApplicationsAlert(forcedMove: onDMG)
+            switch action {
+            case .move:
+                if moveToApplications() { return }
+            case .quit:
+                NSApp.terminate(nil)
+                return
+            case .notNow:
+                break
+            case .dontAskAgain:
+                ConfigStore.shared.suppressMovePrompt = true
+            }
+        }
+
+        // --- Self-register with LaunchServices ---
+        if isInstalled,
+           ConfigStore.shared.lsRegisteredVersion != ExtensionRegistry.version {
+            selfRegisterWithLaunchServices()
+        }
+
         // GUI / file-forwarding mode — launch as menu bar agent.
         // The app lives in the menu bar; no Dock icon by default.
         MenuBarManager.shared.setup()
@@ -85,6 +113,158 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc func showSettingsAbout() {
         SettingsWindow.show()
+    }
+
+    // MARK: - Move-to-Applications (DMG-01)
+
+    private enum MoveAction {
+        case move, quit, notNow, dontAskAgain
+    }
+
+    private func showMoveToApplicationsAlert(forcedMove: Bool) -> MoveAction {
+        NSApp.activate(ignoringOtherApps: true)
+        let alert = NSAlert()
+        alert.alertStyle = .informational
+
+        if forcedMove {
+            alert.messageText = "Move to Applications"
+            alert.informativeText = "Trampoline is running from a disk image. "
+                + "It must be installed in your Applications folder to work properly."
+            alert.addButton(withTitle: "Move to Applications")
+            alert.addButton(withTitle: "Quit")
+            let response = alert.runModal()
+            return response == .alertFirstButtonReturn ? .move : .quit
+        } else {
+            alert.messageText = "Move to Applications?"
+            alert.informativeText = "Trampoline works best when installed in your "
+                + "Applications folder. Would you like to move it there now?"
+            alert.addButton(withTitle: "Move to Applications")
+            alert.addButton(withTitle: "Not Now")
+            alert.addButton(withTitle: "Don't Ask Again")
+            let response = alert.runModal()
+            switch response {
+            case .alertFirstButtonReturn: return .move
+            case .alertSecondButtonReturn: return .notNow
+            default: return .dontAskAgain
+            }
+        }
+    }
+
+    /// Attempts to move the app to /Applications and relaunch.
+    /// Returns `true` if relaunch was initiated (caller should return).
+    private func moveToApplications() -> Bool {
+        let source = Bundle.main.bundleURL
+        let dest = URL(fileURLWithPath: "/Applications/Trampoline.app")
+        let tempDest = URL(fileURLWithPath: "/Applications/Trampoline.app.new")
+        let fm = FileManager.default
+
+        // Clean up any stale temp from a previous failed attempt
+        try? fm.removeItem(at: tempDest)
+
+        // Try move first (atomic on same volume), fall back to copy.
+        // moveItem may leave a partial directory on cross-volume failure,
+        // so clear tempDest before the copy fallback.
+        do {
+            try fm.moveItem(at: source, to: tempDest)
+        } catch {
+            // Cross-volume (e.g., DMG) — clean up partial and fall back to copy
+            try? fm.removeItem(at: tempDest)
+            do {
+                try fm.copyItem(at: source, to: tempDest)
+                // Try to clean up source (fails silently on read-only volumes)
+                try? fm.removeItem(at: source)
+            } catch {
+                showMoveErrorAlert(
+                    "Could not install Trampoline: \(error.localizedDescription)\n\n"
+                    + "Drag Trampoline.app from Finder into your Applications folder, "
+                    + "then relaunch.")
+                try? fm.removeItem(at: tempDest)
+                return false
+            }
+        }
+
+        // Replace existing install: remove old, rename temp to final.
+        // If remove succeeds but rename fails, attempt recovery by
+        // renaming temp back so the user isn't left without an install.
+        do {
+            if fm.fileExists(atPath: dest.path) {
+                try fm.removeItem(at: dest)
+            }
+            try fm.moveItem(at: tempDest, to: dest)
+        } catch {
+            // Recovery: if dest was removed but rename failed, try to
+            // put the temp copy at the final path anyway.
+            if !fm.fileExists(atPath: dest.path),
+               fm.fileExists(atPath: tempDest.path) {
+                try? fm.moveItem(at: tempDest, to: dest)
+            }
+            showMoveErrorAlert(
+                "Could not replace existing installation: \(error.localizedDescription)\n\n"
+                + "Drag Trampoline.app from Finder into your Applications folder, "
+                + "then relaunch.")
+            return false
+        }
+
+        // Relaunch from installed location
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        task.arguments = [dest.path]
+        do {
+            try task.run()
+            task.waitUntilExit()
+            if task.terminationStatus != 0 {
+                NSLog("Trampoline: open exited with status %d",
+                      task.terminationStatus)
+                showMoveErrorAlert(
+                    "Trampoline was installed but could not be relaunched. "
+                    + "Open it from your Applications folder.")
+                return false
+            }
+        } catch {
+            NSLog("Trampoline: failed to relaunch: %@",
+                  error.localizedDescription)
+            showMoveErrorAlert(
+                "Trampoline was installed but could not be relaunched. "
+                + "Open it from your Applications folder.")
+            return false
+        }
+        NSApp.terminate(nil)
+        return true
+    }
+
+    private func showMoveErrorAlert(_ message: String) {
+        let alert = NSAlert()
+        alert.messageText = "Installation Failed"
+        alert.informativeText = message
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "OK")
+        alert.runModal()
+    }
+
+    // MARK: - LaunchServices self-registration (DMG-02)
+
+    private func selfRegisterWithLaunchServices() {
+        let lsregister = "/System/Library/Frameworks/CoreServices.framework"
+            + "/Frameworks/LaunchServices.framework/Support/lsregister"
+        let bundlePath = Bundle.main.bundlePath
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: lsregister)
+        task.arguments = ["-f", bundlePath]
+        do {
+            try task.run()
+            task.waitUntilExit()
+            if task.terminationStatus == 0 {
+                ConfigStore.shared.lsRegisteredVersion = ExtensionRegistry.version
+                NSLog("Trampoline: registered with LaunchServices (v%@)",
+                      ExtensionRegistry.version)
+            } else {
+                NSLog("Trampoline: lsregister exited with status %d",
+                      task.terminationStatus)
+            }
+        } catch {
+            NSLog("Trampoline: failed to run lsregister: %@",
+                  error.localizedDescription)
+        }
     }
 }
 

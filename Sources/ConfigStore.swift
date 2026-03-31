@@ -33,6 +33,8 @@ final class ConfigStore {
         self.editorOverrideNames = defaults.dictionary(forKey: "editorOverrideNames")
             as? [String: String] ?? [:]
         self.customExtensions = defaults.stringArray(forKey: "customExtensions") ?? []
+        self.suppressMovePrompt = defaults.bool(forKey: "suppressMovePrompt")
+        self.lsRegisteredVersion = defaults.string(forKey: "lsRegisteredVersion")
     }
 
     // MARK: - Persisted properties
@@ -73,6 +75,14 @@ final class ConfigStore {
 
     var customExtensions: [String] = [] {
         didSet { defaults.set(customExtensions, forKey: "customExtensions") }
+    }
+
+    var suppressMovePrompt: Bool = false {
+        didSet { defaults.set(suppressMovePrompt, forKey: "suppressMovePrompt") }
+    }
+
+    var lsRegisteredVersion: String? {
+        didSet { defaults.set(lsRegisteredVersion, forKey: "lsRegisteredVersion") }
     }
 
     // MARK: - Transient state (not persisted to UserDefaults)
