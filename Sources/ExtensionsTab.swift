@@ -197,11 +197,9 @@ struct ExtensionsTab: View {
             Spacer()
 
             Button("Claim Selected") { claimSelected() }
-                .disabled(selectedCount == 0)
-
-            Button("Release Selected") { releaseSelected() }
-                .disabled(true)
-                .help("Extension release is not yet implemented")
+                .disabled(rows.filter {
+                    $0.isSelected && $0.status != .registered && $0.status != .claimed
+                }.isEmpty)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -356,20 +354,11 @@ struct ExtensionsTab: View {
     }
 
     private func claimSelected() {
-        // Registered rows have disabled checkboxes, but filter defensively.
         let exts = rows
-            .filter { $0.isSelected && $0.status != .registered }
+            .filter { $0.isSelected && $0.status != .registered && $0.status != .claimed }
             .map(\.ext)
         guard !exts.isEmpty else { return }
         performClaim(exts)
-    }
-
-    private func releaseSelected() {
-        // Registered rows have disabled checkboxes, but filter defensively.
-        let exts = rows
-            .filter { $0.isSelected && $0.status != .registered }
-            .map(\.ext)
-        NSLog("[Trampoline] Release requested for: %@", exts.joined(separator: ", "))
     }
 
     private func performClaim(_ exts: [String]) {
