@@ -29,6 +29,8 @@ struct ExtensionsTab: View {
     @State private var sortKey: SortKey = .status
     @State private var sortAscending = true
     @State private var showEditorPicker = false
+    @State private var customInput = ""
+    @State private var customMessage: String?
 
     private var filteredRows: [ExtensionRow] {
         let base = searchText.isEmpty
@@ -44,6 +46,35 @@ struct ExtensionsTab: View {
     var body: some View {
         VStack(spacing: 0) {
             toolbar
+
+            HStack {
+                TextField("Add extensions (e.g. hx, ino, rkt)", text: $customInput, axis: .vertical)
+                    .lineLimit(1...3)
+                    .textFieldStyle(.roundedBorder)
+                Button("Add") {
+                    addCustomExtensions()
+                }
+                .disabled(customInput.trimmingCharacters(in: .whitespaces).isEmpty)
+                if !ConfigStore.shared.customExtensions.isEmpty {
+                    Text("\(ConfigStore.shared.customExtensions.count) custom")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Button("Clear All") {
+                        clearCustomExtensions()
+                    }
+                    .font(.caption)
+                }
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 6)
+
+            if let msg = customMessage {
+                Text(msg)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal)
+            }
+
             Divider()
 
             if rows.isEmpty {
@@ -286,7 +317,10 @@ struct ExtensionsTab: View {
     private func loadStatuses() async {
         // Skip re-load on tab switch; claim actions refresh rows directly.
         guard rows.isEmpty else { return }
+        await reloadStatuses()
+    }
 
+    private func reloadStatuses() async {
         editors = EditorDetector.detectInstalledEditors()
 
         // queryAllStatuses calls Launch Services synchronously for each
@@ -377,6 +411,35 @@ struct ExtensionsTab: View {
                 }
             }
         }
+    }
+
+    // MARK: - Custom extension actions
+
+    private func addCustomExtensions() {
+        let parsed = ConfigStore.parseExtensionInput(customInput)
+        guard !parsed.isEmpty else { return }
+        let beforeCount = ConfigStore.shared.customExtensions.count
+        ConfigStore.shared.addCustomExtensions(parsed)
+        let added = ConfigStore.shared.customExtensions.count - beforeCount
+        customInput = ""
+        customMessage = "Added \(added) extension\(added == 1 ? "" : "s")"
+        Task {
+            try? await Task.sleep(for: .seconds(3))
+            await MainActor.run { customMessage = nil }
+        }
+        Task { await reloadStatuses() }
+    }
+
+    private func clearCustomExtensions() {
+        let exts = ConfigStore.shared.customExtensions
+        let count = exts.count
+        ConfigStore.shared.removeCustomExtensions(exts)
+        customMessage = "Removed \(count) custom extension\(count == 1 ? "" : "s")"
+        Task {
+            try? await Task.sleep(for: .seconds(3))
+            await MainActor.run { customMessage = nil }
+        }
+        Task { await reloadStatuses() }
     }
 
     // MARK: - Editor actions

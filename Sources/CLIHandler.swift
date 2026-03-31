@@ -8,8 +8,8 @@ enum CLIHandler {
     // MARK: - Constants
 
     static let subcommands: Set<String> = [
-        "editor", "status", "claim", "release", "install-cli", "uninstall",
-        "--help", "--version", "-h", "-v",
+        "editor", "extensions", "status", "claim", "release", "install-cli",
+        "uninstall", "--help", "--version", "-h", "-v",
     ]
 
     // MARK: - Exit codes
@@ -32,9 +32,10 @@ enum CLIHandler {
         let rest = Array(args.dropFirst(2))
 
         switch command {
-        case "editor":    handleEditor(rest)
-        case "status":    handleStatus(rest)
-        case "claim":     handleClaim(rest)
+        case "editor":     handleEditor(rest)
+        case "extensions": handleExtensions(rest)
+        case "status":     handleStatus(rest)
+        case "claim":      handleClaim(rest)
         case "release":   handleRelease(rest)
         case "install-cli": handleInstallCLI()
         case "uninstall": handleUninstall()
@@ -210,6 +211,142 @@ enum CLIHandler {
         exit(exitSuccess)
     }
 
+    // MARK: - extensions
+
+    private static func handleExtensions(_ args: [String]) {
+        guard let action = args.first, action != "--help" else {
+            printExtensionsUsage()
+            exit(args.isEmpty ? exitUsage : exitSuccess)
+        }
+
+        switch action {
+        case "add":    handleExtensionsAdd(Array(args.dropFirst()))
+        case "remove": handleExtensionsRemove(Array(args.dropFirst()))
+        case "list":   handleExtensionsList()
+        case "clear":  handleExtensionsClear()
+        default:
+            printErr("Unknown extensions action: \(action)")
+            printExtensionsUsage()
+            exit(exitUsage)
+        }
+    }
+
+    private static func handleExtensionsAdd(_ args: [String]) {
+        let input = args.joined(separator: " ")
+        let parsed = ConfigStore.parseExtensionInput(input)
+        guard !parsed.isEmpty else {
+            printErr("No extensions provided.")
+            printErr("Usage: trampoline extensions add .ext1 .ext2 ...")
+            exit(exitError)
+        }
+
+        let store = ConfigStore.shared
+        let existingCustom = Set(store.customExtensions)
+
+        var addedCount = 0
+        var alreadyCustomCount = 0
+        var alreadyManagedCount = 0
+
+        // Classify each extension before adding
+        var toAdd = [String]()
+        for ext in parsed {
+            if ExtensionRegistry.managedExtension(for: ext) != nil {
+                print("  Already managed: .\(ext)")
+                alreadyManagedCount += 1
+            } else if existingCustom.contains(ext) {
+                print("  Already custom: .\(ext)")
+                alreadyCustomCount += 1
+            } else {
+                toAdd.append(ext)
+            }
+        }
+
+        if !toAdd.isEmpty {
+            store.addCustomExtensions(toAdd)
+            for ext in toAdd {
+                print("  Added: .\(ext)")
+                addedCount += 1
+            }
+        }
+
+        print()
+        print("\(addedCount) added, \(alreadyCustomCount) already custom, " +
+              "\(alreadyManagedCount) already managed")
+        exit(exitSuccess)
+    }
+
+    private static func handleExtensionsRemove(_ args: [String]) {
+        let input = args.joined(separator: " ")
+        let parsed = ConfigStore.parseExtensionInput(input)
+        guard !parsed.isEmpty else {
+            printErr("No extensions provided.")
+            printErr("Usage: trampoline extensions remove .ext1 .ext2 ...")
+            exit(exitError)
+        }
+
+        let store = ConfigStore.shared
+        let existingCustom = Set(store.customExtensions)
+
+        var toRemove = [String]()
+        for ext in parsed {
+            if existingCustom.contains(ext) {
+                toRemove.append(ext)
+                print("  Removed: .\(ext)")
+            } else {
+                print("  Not custom: .\(ext)")
+            }
+        }
+
+        if !toRemove.isEmpty {
+            store.removeCustomExtensions(toRemove)
+        }
+
+        exit(exitSuccess)
+    }
+
+    private static func handleExtensionsList() {
+        let custom = ConfigStore.shared.customExtensions
+        if custom.isEmpty {
+            print("(none)")
+        } else {
+            for ext in custom {
+                print(".\(ext)")
+            }
+        }
+        exit(exitSuccess)
+    }
+
+    private static func handleExtensionsClear() {
+        let store = ConfigStore.shared
+        let count = store.customExtensions.count
+        store.removeCustomExtensions(store.customExtensions)
+        print("Cleared \(count) custom extension(s).")
+        exit(exitSuccess)
+    }
+
+    private static func printExtensionsUsage() {
+        let usage = """
+        Manage custom file extensions.
+
+        USAGE:
+            trampoline extensions <action> [extensions]
+
+        ACTIONS:
+            add <exts>     Add custom extensions (e.g., .ext1 .ext2)
+            remove <exts>  Remove custom extensions
+            list           List all custom extensions
+            clear          Remove all custom extensions
+
+        EXAMPLES:
+            trampoline extensions add .typ .roc .gleam
+            trampoline extensions add typ,roc,gleam
+            trampoline extensions remove .typ
+            trampoline extensions list
+            trampoline extensions clear
+        """
+        print(usage)
+    }
+
     // MARK: - status
 
     private static func handleStatus(_ args: [String]) {
@@ -250,6 +387,7 @@ enum CLIHandler {
                 dict["editor"] = resolved.bundleID
             }
             dict["editorOverride"] = store.editorOverrides[ext.lowercased()] != nil
+            dict["custom"] = ExtensionRegistry.managedExtension(for: ext) == nil
             return dict
         }
         do {
@@ -546,6 +684,7 @@ enum CLIHandler {
 
         COMMANDS:
             editor [name|bundle-id]    Get or set the default editor
+            extensions <action>        Manage custom file extensions
             status                     Show extension handler status
             claim [--all]              Claim extensions as Trampoline
             release [--all]            Release extensions back to system
@@ -566,6 +705,8 @@ enum CLIHandler {
             trampoline editor .kt --clear               Clear override, use default
             trampoline status                    Show all extensions
             trampoline status --json             Machine-readable output
+            trampoline extensions add .typ .roc    Add custom extensions
+            trampoline extensions list             List custom extensions
             trampoline claim                     Claim unclaimed only
             trampoline claim --all               Claim all (may show dialogs)
         """

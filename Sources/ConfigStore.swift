@@ -32,6 +32,7 @@ final class ConfigStore {
             as? [String: String] ?? [:]
         self.editorOverrideNames = defaults.dictionary(forKey: "editorOverrideNames")
             as? [String: String] ?? [:]
+        self.customExtensions = defaults.stringArray(forKey: "customExtensions") ?? []
     }
 
     // MARK: - Persisted properties
@@ -68,6 +69,10 @@ final class ConfigStore {
     /// Display name cache for overridden editors: [bundleID: displayName].
     var editorOverrideNames: [String: String] = [:] {
         didSet { defaults.set(editorOverrideNames, forKey: "editorOverrideNames") }
+    }
+
+    var customExtensions: [String] = [] {
+        didSet { defaults.set(customExtensions, forKey: "customExtensions") }
     }
 
     // MARK: - Transient state (not persisted to UserDefaults)
@@ -115,5 +120,47 @@ final class ConfigStore {
             names.removeValue(forKey: key)
         }
         editorOverrideNames = names
+    }
+
+    /// Adds new custom extensions (deduplicating against existing and hardcoded).
+    func addCustomExtensions(_ newExts: [String]) {
+        var current = Set(customExtensions)
+        var added = [String]()
+        for ext in newExts where !current.contains(ext) {
+            // Skip extensions already in the hardcoded registry
+            guard ExtensionRegistry.managedExtension(for: ext) == nil else { continue }
+            current.insert(ext)
+            added.append(ext)
+        }
+        if !added.isEmpty {
+            customExtensions = (customExtensions + added).sorted()
+        }
+    }
+
+    /// Removes custom extensions.
+    func removeCustomExtensions(_ exts: [String]) {
+        let toRemove = Set(exts)
+        customExtensions = customExtensions.filter { !toRemove.contains($0) }
+        clearOverrides(for: exts)
+    }
+
+    /// Parses a freeform string of extensions into a cleaned array.
+    /// Accepts comma, space, newline, or semicolon delimiters.
+    /// Strips leading dots, whitespace, and empty entries.
+    /// Returns lowercased extensions without duplicates, preserving order.
+    static func parseExtensionInput(_ input: String) -> [String] {
+        let separators = CharacterSet(charactersIn: ",;\n\r ")
+        let raw = input.components(separatedBy: separators)
+        var seen = Set<String>()
+        var result = [String]()
+        for item in raw {
+            var ext = item.trimmingCharacters(in: .whitespaces)
+            if ext.hasPrefix(".") { ext = String(ext.dropFirst()) }
+            ext = ext.lowercased()
+            guard !ext.isEmpty, !seen.contains(ext) else { continue }
+            seen.insert(ext)
+            result.append(ext)
+        }
+        return result
     }
 }

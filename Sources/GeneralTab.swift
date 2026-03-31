@@ -386,7 +386,7 @@ struct GeneralTab: View {
         let statuses = ExtensionRegistry.queryAllStatuses()
         // Build a lookup so we can check rank when routing .other statuses.
         let managedByExt = Dictionary(
-            uniqueKeysWithValues: ExtensionRegistry.all.map { ($0.ext, $0) })
+            uniqueKeysWithValues: ExtensionRegistry.allIncludingCustom.map { ($0.ext, $0) })
 
         var registered = 0
         var claimed = 0

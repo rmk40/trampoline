@@ -179,10 +179,22 @@ enum ExtensionRegistry {
         all.filter { $0.rank == .primary }
     }
 
+    /// All managed extensions including user-defined custom ones.
+    /// Custom extensions use dynamic UTI resolution (uti = nil)
+    /// and rank = .alternate (require explicit LS claim).
+    static var allIncludingCustom: [ManagedExtension] {
+        let custom = ConfigStore.shared.customExtensions.compactMap { ext -> ManagedExtension? in
+            // Skip if already in the hardcoded list
+            guard !all.contains(where: { $0.ext == ext }) else { return nil }
+            return ManagedExtension(ext: ext, uti: nil, category: "Custom", rank: .alternate)
+        }
+        return all + custom
+    }
+
     /// Extensions that require an explicit LSSetDefaultRoleHandlerForContentType
     /// call (system/dynamic UTIs, rank .alternate).
     static var explicitOnly: [ManagedExtension] {
-        all.filter { $0.rank == .alternate }
+        allIncludingCustom.filter { $0.rank == .alternate }
     }
 
     // MARK: - Lookup
@@ -190,6 +202,11 @@ enum ExtensionRegistry {
     /// Find the ManagedExtension entry for a given file extension string.
     static func managedExtension(for ext: String) -> ManagedExtension? {
         all.first(where: { $0.ext == ext })
+    }
+
+    /// Find extension in the combined list (hardcoded + custom).
+    static func anyManagedExtension(for ext: String) -> ManagedExtension? {
+        allIncludingCustom.first(where: { $0.ext == ext })
     }
 
     // MARK: - UTI resolution
@@ -243,7 +260,7 @@ enum ExtensionRegistry {
     /// For `.alternate` rank extensions, we use the existing claimed/other/
     /// unclaimed logic since they require an explicit LS API call.
     static func queryAllStatuses() -> [(ext: String, status: HandlerStatus)] {
-        all.map { managed in
+        allIncludingCustom.map { managed in
             if managed.rank == .primary {
                 // Custom UTI — plist registration handles this.
                 guard let handler = queryHandler(for: managed.ext) else {
@@ -287,7 +304,7 @@ enum ExtensionRegistry {
         extensions exts: [String]
     ) -> [(ext: String, result: ClaimResult)] {
         exts.map { ext in
-            guard let managed = managedExtension(for: ext) else {
+            guard let managed = anyManagedExtension(for: ext) else {
                 return (ext, .failed)
             }
 
