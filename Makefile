@@ -11,6 +11,7 @@ all: $(BINARY)
 
 $(BINARY): $(SOURCES)
 	swiftc $(SWIFTFLAGS) $(FRAMEWORKS) -o $@ $^
+	cp -f trampoline_app_icon.svg Trampoline.app/Contents/Resources/
 
 clean:
 	rm -f $(BINARY)

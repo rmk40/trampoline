@@ -2,8 +2,8 @@ import SwiftUI
 
 struct AboutTab: View {
 
-    private static let githubURL = URL(string: "https://github.com/maelos/trampoline")
-    private static let issuesURL = URL(string: "https://github.com/maelos/trampoline/issues")
+    private static let githubURL = URL(string: "https://github.com/rmk40/trampoline")
+    private static let issuesURL = URL(string: "https://github.com/rmk40/trampoline/issues")
 
     var body: some View {
         VStack(spacing: 16) {
@@ -12,7 +12,7 @@ struct AboutTab: View {
             // App icon
             Image(nsImage: appIcon)
                 .resizable()
-                .frame(width: 64, height: 64)
+                .frame(width: 128, height: 128)
 
             // Title
             Text("Trampoline")
@@ -44,8 +44,11 @@ struct AboutTab: View {
                 }
             }
 
-            // License
+            // License & author
             Text("License: MIT")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            Text("Created by Rafi Khardalian")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
 
@@ -57,10 +60,18 @@ struct AboutTab: View {
     // MARK: - Helpers
 
     private var appIcon: NSImage {
+        // Prefer the bundled SVG for crisp vector rendering
+        if let svgPath = Bundle.main.path(
+            forResource: "trampoline_app_icon", ofType: "svg"),
+           let svgImage = NSImage(contentsOfFile: svgPath) {
+            svgImage.size = NSSize(width: 128, height: 128)
+            return svgImage
+        }
+        // Fallback: app icon from the bundle
         let source = NSApp.applicationIconImage ?? NSImage(
             named: NSImage.applicationIconName) ?? NSImage()
         let icon = source.copy() as? NSImage ?? source
-        icon.size = NSSize(width: 64, height: 64)
+        icon.size = NSSize(width: 128, height: 128)
         return icon
     }
 }

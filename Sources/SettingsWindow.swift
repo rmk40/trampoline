@@ -21,9 +21,9 @@ enum SettingsWindow {
             let window = NSWindow(contentViewController: hostingController)
             window.title = "Trampoline"
             window.styleMask = [.titled, .closable, .miniaturizable]
-            window.setContentSize(NSSize(width: 640, height: 480))
-            window.minSize = NSSize(width: 540, height: 400)
-            window.maxSize = NSSize(width: 800, height: 600)
+            window.setContentSize(NSSize(width: 640, height: 520))
+            window.minSize = NSSize(width: 540, height: 440)
+            window.maxSize = NSSize(width: 800, height: 640)
             window.center()
             window.isReleasedWhenClosed = false
 
