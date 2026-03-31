@@ -1,4 +1,6 @@
 Trampoline.app/Contents/MacOS/Trampoline
+Trampoline-*.dmg
+dmg-staging/
 .DS_Store
 *.o
 *.swp

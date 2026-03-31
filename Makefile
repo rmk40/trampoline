@@ -5,7 +5,10 @@ SWIFTFLAGS := -O -warnings-as-errors
 
 LSREGISTER := /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
 
-.PHONY: all clean install uninstall
+VERSION := $(shell grep 'static let version' Sources/ExtensionRegistry.swift | sed 's/.*"\(.*\)"/\1/')
+DMG     := Trampoline-$(VERSION).dmg
+
+.PHONY: all clean install uninstall dmg
 
 all: $(BINARY)
 
@@ -15,6 +18,8 @@ $(BINARY): $(SOURCES)
 
 clean:
 	rm -f $(BINARY)
+	rm -f Trampoline-*.dmg
+	rm -rf dmg-staging
 
 install: all
 	@echo "Installing Trampoline.app..."
@@ -36,3 +41,28 @@ uninstall:
 	@echo "Clearing preferences..."
 	defaults delete com.maelos.trampoline 2>/dev/null || true
 	@echo "Done."
+
+dmg: all
+	@test -n "$(VERSION)" || { echo "Error: could not extract VERSION from ExtensionRegistry.swift"; exit 1; }
+	@command -v create-dmg >/dev/null 2>&1 || \
+		{ echo "Error: create-dmg not found. Install with: brew install create-dmg"; exit 1; }
+	@echo "Codesigning..."
+	codesign --force --deep --sign - Trampoline.app
+	@echo "Creating $(DMG)..."
+	rm -f "$(DMG)"
+	rm -rf dmg-staging
+	mkdir dmg-staging
+	ditto Trampoline.app dmg-staging/Trampoline.app
+	create-dmg \
+		--volname "Trampoline" \
+		--window-pos 200 120 \
+		--window-size 600 400 \
+		--icon-size 128 \
+		--icon "Trampoline.app" 150 190 \
+		--hide-extension "Trampoline.app" \
+		--app-drop-link 450 190 \
+		"$(DMG)" \
+		dmg-staging/ \
+		|| test $$? -eq 2  # exit 2 = DMG created but Finder cosmetics failed
+	rm -rf dmg-staging
+	@echo "Created $(DMG)"
