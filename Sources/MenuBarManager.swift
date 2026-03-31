@@ -120,8 +120,8 @@ final class MenuBarManager: NSObject, NSMenuDelegate {
     private func startObserving() {
         withObservationTracking {
             _ = ConfigStore.shared.showMenuBarIcon
-        } onChange: { [weak self] in
-            Task { @MainActor in
+        } onChange: {
+            Task { @MainActor [weak self] in
                 self?.updateVisibility()
                 self?.startObserving()
             }
