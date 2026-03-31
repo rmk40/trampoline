@@ -65,9 +65,9 @@ final class FileForwarder {
 
         // Open each group in its respective editor
         for (bundleID, group) in groups {
-            let openConfig = NSWorkspace.OpenConfiguration()
             Task {
                 do {
+                    let openConfig = NSWorkspace.OpenConfiguration()
                     _ = try await NSWorkspace.shared.open(
                         group.urls,
                         withApplicationAt: group.editorURL,
