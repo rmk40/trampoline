@@ -1,7 +1,10 @@
 Trampoline.app/Contents/MacOS/Trampoline
+Trampoline.app/Contents/Resources/trampoline_app_icon.svg
+Trampoline.app/Contents/_CodeSignature/
 Trampoline-*.dmg
 dmg-staging/
 .DS_Store
 *.o
 *.swp
 *.dSYM
+*.png
