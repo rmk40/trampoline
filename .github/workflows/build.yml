@@ -19,13 +19,51 @@ jobs:
       - name: Build
         run: make all
 
+      # --- Release steps (tag pushes only) ---
+
+      - name: Import signing certificate
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          CERTIFICATE_P12: ${{ secrets.CERTIFICATE_P12 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+        run: |
+          KEYCHAIN_PATH=$RUNNER_TEMP/signing.keychain-db
+          security create-keychain -p "" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 3600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "" "$KEYCHAIN_PATH"
+          echo "$CERTIFICATE_P12" | base64 --decode > $RUNNER_TEMP/cert.p12
+          security import $RUNNER_TEMP/cert.p12 -k "$KEYCHAIN_PATH" \
+            -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: \
+            -s -k "" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
+
       - name: Install create-dmg
         if: startsWith(github.ref, 'refs/tags/v')
         run: brew install create-dmg
 
-      - name: Create DMG
+      - name: Create signed DMG
         if: startsWith(github.ref, 'refs/tags/v')
-        run: make dmg
+        env:
+          SIGN_IDENTITY: ${{ secrets.SIGN_IDENTITY }}
+        run: make dmg SIGN_IDENTITY="$SIGN_IDENTITY"
+
+      - name: Notarize DMG
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          xcrun notarytool store-credentials "ci-notarize" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_APP_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID"
+          DMG=$(ls Trampoline-*.dmg)
+          xcrun notarytool submit "$DMG" \
+            --keychain-profile "ci-notarize" \
+            --wait
+          xcrun stapler staple "$DMG"
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
@@ -33,3 +71,7 @@ jobs:
         with:
           files: Trampoline-*.dmg
           generate_release_notes: true
+
+      - name: Cleanup keychain
+        if: startsWith(github.ref, 'refs/tags/v') && always()
+        run: security delete-keychain $RUNNER_TEMP/signing.keychain-db 2>/dev/null || true

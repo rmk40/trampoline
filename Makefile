@@ -8,7 +8,15 @@ LSREGISTER := /System/Library/Frameworks/CoreServices.framework/Frameworks/Launc
 VERSION := $(shell grep 'static let version' Sources/ExtensionRegistry.swift | sed 's/.*"\(.*\)"/\1/')
 DMG     := Trampoline-$(VERSION).dmg
 
-.PHONY: all clean install uninstall dmg
+# Code signing — override via environment or command line:
+#   make sign SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)"
+#   make notarize NOTARY_PROFILE="your-profile"
+# Defaults to ad-hoc signing (no notarization possible).
+SIGN_IDENTITY  ?= -
+ENTITLEMENTS   := Trampoline.entitlements
+NOTARY_PROFILE ?= trampoline
+
+.PHONY: all clean install uninstall dmg sign notarize
 
 all: $(BINARY)
 
@@ -21,11 +29,32 @@ clean:
 	rm -f Trampoline-*.dmg
 	rm -rf dmg-staging
 
+sign: all
+	@echo "Signing with: $(SIGN_IDENTITY)"
+ifeq ($(SIGN_IDENTITY),-)
+	codesign --force --deep --sign - Trampoline.app
+else
+	codesign --force --deep --sign "$(SIGN_IDENTITY)" \
+		--entitlements "$(ENTITLEMENTS)" \
+		--options runtime \
+		Trampoline.app
+endif
+	@echo "Verifying signature..."
+	codesign --verify --deep --strict Trampoline.app
+	@echo "Signature valid."
+
 install: all
 	@echo "Installing Trampoline.app..."
 	rm -rf /Applications/Trampoline.app
 	cp -R Trampoline.app /Applications/
+ifeq ($(SIGN_IDENTITY),-)
 	codesign --force --deep --sign - /Applications/Trampoline.app
+else
+	codesign --force --deep --sign "$(SIGN_IDENTITY)" \
+		--entitlements "$(ENTITLEMENTS)" \
+		--options runtime \
+		/Applications/Trampoline.app
+endif
 	$(LSREGISTER) -f /Applications/Trampoline.app
 	@echo "Creating CLI symlink..."
 	mkdir -p /usr/local/bin
@@ -42,12 +71,10 @@ uninstall:
 	defaults delete com.maelos.trampoline 2>/dev/null || true
 	@echo "Done."
 
-dmg: all
+dmg: sign
 	@test -n "$(VERSION)" || { echo "Error: could not extract VERSION from ExtensionRegistry.swift"; exit 1; }
 	@command -v create-dmg >/dev/null 2>&1 || \
 		{ echo "Error: create-dmg not found. Install with: brew install create-dmg"; exit 1; }
-	@echo "Codesigning..."
-	codesign --force --deep --sign - Trampoline.app
 	@echo "Creating $(DMG)..."
 	rm -f "$(DMG)"
 	rm -rf dmg-staging
@@ -66,3 +93,13 @@ dmg: all
 		|| test $$? -eq 2  # exit 2 = DMG created but Finder cosmetics failed
 	rm -rf dmg-staging
 	@echo "Created $(DMG)"
+
+notarize: dmg
+	@test "$(SIGN_IDENTITY)" != "-" || { echo "Error: notarization requires a Developer ID. Set SIGN_IDENTITY."; exit 1; }
+	@echo "Submitting $(DMG) for notarization..."
+	xcrun notarytool submit "$(DMG)" \
+		--keychain-profile "$(NOTARY_PROFILE)" \
+		--wait
+	@echo "Stapling notarization ticket..."
+	xcrun stapler staple "$(DMG)"
+	@echo "Notarization complete."
