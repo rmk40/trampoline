@@ -44,9 +44,7 @@ jobs:
 
       - name: Create signed DMG
         if: startsWith(github.ref, 'refs/tags/v')
-        env:
-          SIGN_IDENTITY: ${{ secrets.SIGN_IDENTITY }}
-        run: make dmg SIGN_IDENTITY="$SIGN_IDENTITY"
+        run: make dmg
 
       - name: Notarize DMG
         if: startsWith(github.ref, 'refs/tags/v')

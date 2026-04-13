@@ -8,11 +8,14 @@ LSREGISTER := /System/Library/Frameworks/CoreServices.framework/Frameworks/Launc
 VERSION := $(shell grep 'static let version' Sources/ExtensionRegistry.swift | sed 's/.*"\(.*\)"/\1/')
 DMG     := Trampoline-$(VERSION).dmg
 
-# Code signing — override via environment or command line:
-#   make sign SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)"
-#   make notarize NOTARY_PROFILE="your-profile"
-# Defaults to ad-hoc signing (no notarization possible).
-SIGN_IDENTITY  ?= -
+# Code signing — auto-detects Developer ID Application certificate
+# from the Keychain. Falls back to ad-hoc signing when no cert is found.
+SIGN_IDENTITY := $(shell security find-identity -v -p codesigning 2>/dev/null \
+    | grep "Developer ID Application" | head -1 \
+    | sed 's/.*"\(.*\)"/\1/')
+ifeq ($(SIGN_IDENTITY),)
+  SIGN_IDENTITY := -
+endif
 ENTITLEMENTS   := Trampoline.entitlements
 NOTARY_PROFILE ?= trampoline
 
